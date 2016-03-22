@@ -4,10 +4,8 @@
     <meta charset="utf-8">
     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>API Reference</title>
+    <title>API Documentation</title>
 
-    <link href="stylesheets/screen.css" rel="stylesheet" media="screen" />
-    <link href="stylesheets/print.css" rel="stylesheet" media="print" />
     <style>
       .highlight table td { padding: 5px; }
 .highlight table pre { margin: 0; }
@@ -88,10 +86,12 @@
   color: #90a959;
 }
     </style>
-      <script src="javascripts/all.js"></script>
+    <link href="stylesheets/screen.css" rel="stylesheet" media="screen" />
+    <link href="stylesheets/print.css" rel="stylesheet" media="print" />
+      <script src="javascripts/all_nosearch.js"></script>
   </head>
 
-  <body class="index" data-languages="[&quot;shell&quot;,&quot;ruby&quot;,&quot;python&quot;]">
+  <body class="index" data-languages="[]">
     <a href="#" id="nav-button">
       <span>
         NAV
@@ -101,246 +101,1034 @@
     <div class="tocify-wrapper">
       <img src="images/logo.png" />
         <div class="lang-selector">
-              <a href="#" data-language-name="shell">shell</a>
-              <a href="#" data-language-name="ruby">ruby</a>
-              <a href="#" data-language-name="python">python</a>
         </div>
-        <div class="search">
-          <input type="text" class="search" id="input-search" placeholder="Search">
-        </div>
-        <ul class="search-results"></ul>
       <div id="toc">
       </div>
-        <ul class="toc-footer">
-            <li><a href='#'>Sign Up for a Developer Key</a></li>
-            <li><a href='https://github.com/tripit/slate'>Documentation Powered by Slate</a></li>
-        </ul>
     </div>
     <div class="page-wrapper">
       <div class="dark-box"></div>
       <div class="content">
         <h1 id="introduction">Introduction</h1>
 
-<p>Welcome to the Kittn API! You can use our API to access Kittn API endpoints, which can get information on various cats, kittens, and breeds in our database.</p>
+<p>Utilities Package for the C Programming Language, dubbed C_Utils, contains a plethora of varying, but very useful abstractions for the modern day C programmer. It is designed to be easy to use and easy to read, and very newbie-friendly. As the C standard library is extremely minimal, I decided to create my own abstractions and package them to share them with others who may desire to use them. </p>
 
-<p>We have language bindings in Shell, Ruby, and Python! You can view code examples in the dark area to the right, and you can switch the programming language of the examples with the tabs in the top right.</p>
+<p>This project originally began as a way to teach myself the C Programming language, and so I am mainly self-taught. This may lead to some &ldquo;weird&rdquo; semantics and style choices, however this has been remedied as of March of 2016, by redesigning the entire library, to increase readability and overall control flow.</p>
 
-<p>This example API documentation page was created with <a href="https://github.com/tripit/slate">Slate</a>. Feel free to edit it and use it as a base for your own API&rsquo;s documentation.</p>
+<p>As of now, this project will be continued to be worked on and expanded on as I desire to learn new things. The amount of time spent developing this package has bordered on 800 hours now, and I do not think I&rsquo;ll ever be truly finished, as there are nearly infinitely many amount of things I can do. </p>
 
-<h1 id="authentication">Authentication</h1>
+<p>It should be noted once again, while this project is my &ldquo;personal playground&rdquo; does not mean it will be unusable to others.</p>
+
+<h1 id="notes">Notes</h1>
+
+<h2 id="development-stages">Development Stages</h2>
+
+<p>[<b>Unimplemented</b>] - I have not begun to implement this yet, but I do plan on doing so at a later date.</p>
+
+<p>[<b>In Development</b>] - I am currently working on the implementation of this, and I should be finished soon.</p>
+
+<p>[<b>Unstable</b>] - I have finished developing this, and have done minor testing, but have not done enough to determine if it is bug-free yet.</p>
+
+<p>[<b>Stable</b>] - I have finished developing this, and have done repeated tests to ensure it&rsquo;s stability, however I may add some more features later on at my leisure.</p>
+
+<p>[<b>Finished</b>] - I have finished developing this, and have done repeated tests to ensure it&rsquo;s stability, and I do not plan on adding anything more than bug-fixes in the future.</p>
+
+<h2 id="stable-vs-development-branches">Stable vs Development Branches</h2>
+
+<p>Just to get this out of the way early in the README, as of yet, C_Utils has gone through a MAJOR refactoring, and even now as I write this it is not finished, and hence the stable version does NOT accurately reflect the code samples, or even the libraries within this package. Hence, I urge that, if not already, see https://github.com/theif519/C_Utils/tree/development. </p>
+
+<h2 id="artificial-namespace-patterns">Artificial Namespace patterns</h2>
 
 <blockquote>
-<p>To authorize, use this code:</p>
+<p>With the prefix&hellip;</p>
 </blockquote>
-<pre class="highlight ruby"><code><span class="nb">require</span> <span class="s1">'kittn'</span>
+<pre class="highlight c"><code>
+<span class="k">struct</span> <span class="n">c_utils_logger</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+<span class="n">C_UTILS_LOGGER_AUTO_CREATE</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="p">...);</span>
 
-<span class="n">api</span> <span class="o">=</span> <span class="no">Kittn</span><span class="o">::</span><span class="no">APIClient</span><span class="p">.</span><span class="nf">authorize!</span><span class="p">(</span><span class="s1">'meowmeowmeow'</span><span class="p">)</span>
-</code></pre>
-<pre class="highlight python"><code><span class="kn">import</span> <span class="nn">kittn</span>
+<span class="k">struct</span> <span class="n">c_utils_thread_pool</span> <span class="o">*</span><span class="n">pool</span> <span class="o">=</span> <span class="n">c_utils_thread_pool_create</span><span class="p">(...);</span>
 
-<span class="n">api</span> <span class="o">=</span> <span class="n">kittn</span><span class="o">.</span><span class="n">authorize</span><span class="p">(</span><span class="s">'meowmeowmeow'</span><span class="p">)</span>
-</code></pre>
-<pre class="highlight shell"><code><span class="c"># With shell, you can just pass the correct header with each request</span>
-curl <span class="s2">"api_endpoint_here"</span>
-  -H <span class="s2">"Authorization: meowmeowmeow"</span>
-</code></pre>
-
-<blockquote>
-<p>Make sure to replace <code class="prettyprint">meowmeowmeow</code> with your API key.</p>
-</blockquote>
-
-<p>Kittn uses API keys to allow access to the API. You can register a new Kittn API key at our <a href="http://example.com/developers">developer portal</a>.</p>
-
-<p>Kittn expects for the API key to be included in all API requests to the server in a header that looks like the following:</p>
-
-<p><code class="prettyprint">Authorization: meowmeowmeow</code></p>
-
-<aside class="notice">
-You must replace <code>meowmeowmeow</code> with your personal API key.
-</aside>
-
-<h1 id="kittens">Kittens</h1>
-
-<h2 id="get-all-kittens">Get All Kittens</h2>
-<pre class="highlight ruby"><code><span class="nb">require</span> <span class="s1">'kittn'</span>
-
-<span class="n">api</span> <span class="o">=</span> <span class="no">Kittn</span><span class="o">::</span><span class="no">APIClient</span><span class="p">.</span><span class="nf">authorize!</span><span class="p">(</span><span class="s1">'meowmeowmeow'</span><span class="p">)</span>
-<span class="n">api</span><span class="p">.</span><span class="nf">kittens</span><span class="p">.</span><span class="nf">get</span>
-</code></pre>
-<pre class="highlight python"><code><span class="kn">import</span> <span class="nn">kittn</span>
-
-<span class="n">api</span> <span class="o">=</span> <span class="n">kittn</span><span class="o">.</span><span class="n">authorize</span><span class="p">(</span><span class="s">'meowmeowmeow'</span><span class="p">)</span>
-<span class="n">api</span><span class="o">.</span><span class="n">kittens</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</code></pre>
-<pre class="highlight shell"><code>curl <span class="s2">"http://example.com/api/kittens"</span>
-  -H <span class="s2">"Authorization: meowmeowmeow"</span>
 </code></pre>
 
 <blockquote>
-<p>The above command returns JSON structured like this:</p>
+<p>Without the prefix&hellip;</p>
 </blockquote>
-<pre class="highlight json"><code><span class="p">[</span><span class="w">
-  </span><span class="p">{</span><span class="w">
-    </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Fluffums"</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"breed"</span><span class="p">:</span><span class="w"> </span><span class="s2">"calico"</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"fluffiness"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"cuteness"</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="w">
-  </span><span class="p">},</span><span class="w">
-  </span><span class="p">{</span><span class="w">
-    </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Max"</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"breed"</span><span class="p">:</span><span class="w"> </span><span class="s2">"unknown"</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"fluffiness"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w">
-    </span><span class="nt">"cuteness"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
-  </span><span class="p">}</span><span class="w">
-</span><span class="p">]</span><span class="w">
-</span></code></pre>
+<pre class="highlight c"><code>
+<span class="cp">#define NO_C_UTILS_PREFIX
+#include &lt;logger.h&gt;
+#include &lt;thread_pool.h&gt;
+</span>
+<span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+<span class="n">LOGGER_AUTO_CREATE</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="p">...);</span>
 
-<p>This endpoint retrieves all kittens.</p>
+<span class="n">thread_pool_t</span> <span class="o">*</span><span class="n">pool</span> <span class="o">=</span> <span class="n">thread_pool_create</span><span class="p">(...);</span>
 
-<h3 id="http-request">HTTP Request</h3>
-
-<p><code class="prettyprint">GET http://example.com/api/kittens</code></p>
-
-<h3 id="query-parameters">Query Parameters</h3>
-
-<table><thead>
-<tr>
-<th>Parameter</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead><tbody>
-<tr>
-<td>include_cats</td>
-<td>false</td>
-<td>If set to true, the result will also include cats.</td>
-</tr>
-<tr>
-<td>available</td>
-<td>true</td>
-<td>If set to false, the result will include kittens that have already been adopted.</td>
-</tr>
-</tbody></table>
-
-<aside class="success">
-Remember — a happy kitten is an authenticated kitten!
-</aside>
-
-<h2 id="get-a-specific-kitten">Get a Specific Kitten</h2>
-<pre class="highlight ruby"><code><span class="nb">require</span> <span class="s1">'kittn'</span>
-
-<span class="n">api</span> <span class="o">=</span> <span class="no">Kittn</span><span class="o">::</span><span class="no">APIClient</span><span class="p">.</span><span class="nf">authorize!</span><span class="p">(</span><span class="s1">'meowmeowmeow'</span><span class="p">)</span>
-<span class="n">api</span><span class="p">.</span><span class="nf">kittens</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-</code></pre>
-<pre class="highlight python"><code><span class="kn">import</span> <span class="nn">kittn</span>
-
-<span class="n">api</span> <span class="o">=</span> <span class="n">kittn</span><span class="o">.</span><span class="n">authorize</span><span class="p">(</span><span class="s">'meowmeowmeow'</span><span class="p">)</span>
-<span class="n">api</span><span class="o">.</span><span class="n">kittens</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-</code></pre>
-<pre class="highlight shell"><code>curl <span class="s2">"http://example.com/api/kittens/2"</span>
-  -H <span class="s2">"Authorization: meowmeowmeow"</span>
 </code></pre>
 
-<blockquote>
-<p>The above command returns JSON structured like this:</p>
-</blockquote>
-<pre class="highlight json"><code><span class="p">{</span><span class="w">
-  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w">
-  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Max"</span><span class="p">,</span><span class="w">
-  </span><span class="nt">"breed"</span><span class="p">:</span><span class="w"> </span><span class="s2">"unknown"</span><span class="p">,</span><span class="w">
-  </span><span class="nt">"fluffiness"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w">
-  </span><span class="nt">"cuteness"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
-</span><span class="p">}</span><span class="w">
-</span></code></pre>
+<p>To avoid the issue of namespace collision, as C has only one namespace, all libraries in this package contain the C_UTILS_ prefix for macros, and c_utils_ prefix for functions and structs. Now, this can look rather ugly. For example&hellip;</p>
 
-<p>This endpoint retrieves a specific kitten.</p>
+<p>There&rsquo;s no dodging around it, the c_utils_ prefix makes everything more long-winded. However, this is necessary when writing libraries like these. While it may be unwieldy, maybe you think you don&rsquo;t have to worry about collisions for  a logger or a thread_pool because no other library you use has them. This is where the NO_C_UTILS_NO_PREFIX define comes in. If you define this before importing the libraries, it will strip the c_utils prefix through macro defines, typedef most (99%) of the library the name, ended with a &ldquo;_t&rdquo;. For example&hellip;</p>
 
-<aside class="warning">Inside HTML code blocks like this one, you can&rsquo;t use Markdown, so use <code>&lt;code&gt;</code> blocks to denote code.</aside>
+<p>Now it is a LOT less long-winded, and much more elegant looking. This trade off adds the issue of potential collision, so be warned. Because of this conciseness, all below code samples use the NO_C_UTILS_PREFIX, and so contain no c_utils_ prefix. </p>
 
-<h3 id="http-request">HTTP Request</h3>
+<h2 id="lifetime-management">Lifetime Management</h2>
 
-<p><code class="prettyprint">GET http://example.com/kittens/&lt;ID&gt;</code></p>
+<p>All objects returned from this library can optionally be reference counted. This will work using the lock-free allocator wrapper provided in memory/ref_count.h, to allocate the structure using it. This drastically eases the usage and management the libraries in this package.</p>
 
-<h3 id="url-parameters">URL Parameters</h3>
+<h2 id="configurations">Configurations</h2>
+<pre class="highlight c"><code>
+<span class="cm">/*
+    The below elegantly demonstrates the importance of the configuration 
+    object. As can be seen, the object allows an almost JSON-like appearence to
+    configuring the specifics of the structure. This allows an fine-tuned 
+    data structure to fit the needs of the user. Unlike preprocessor macros,
+    these are evaluated at run-time, meaning you can have different configured
+    objects of the same type (which with preprocessor #define blocks would
+    only allow one). This comes with the trade-off of more memory for each,
+    as the underlying data structure must keep track of each field 
+    independently. 
+*/</span>
 
-<table><thead>
-<tr>
-<th>Parameter</th>
-<th>Description</th>
-</tr>
-</thead><tbody>
-<tr>
-<td>ID</td>
-<td>The ID of the kitten to retrieve</td>
-</tr>
-</tbody></table>
+<span class="n">map_conf_t</span> <span class="n">conf</span> <span class="o">=</span>
+<span class="p">{</span>
+    <span class="p">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">MAP_CONCURRENT</span> <span class="o">|</span> <span class="n">MAP_RC_INSTANCE</span> <span class="o">|</span> <span class="n">MAP_SHRINK_ON_TRIGGER</span> <span class="o">|</span> <span class="n">MAP_DELETE_ON_DESTROY</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">num_buckets</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">callbacks</span> <span class="o">=</span> 
+    <span class="p">{</span>
+        <span class="p">.</span><span class="n">destructors</span> <span class="o">=</span> 
+        <span class="p">{</span>
+            <span class="p">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">free</span><span class="p">,</span>
+            <span class="p">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">destroy_value</span>
+        <span class="p">},</span>
+        <span class="p">.</span><span class="n">hash_function</span> <span class="o">=</span> <span class="n">my_custom_hash</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">value_comparator</span> <span class="o">=</span> <span class="n">my_custom_comparator</span>
+    <span class="p">},</span>
+    <span class="p">.</span><span class="n">growth</span> <span class="o">=</span> 
+    <span class="p">{</span>
+        <span class="p">.</span><span class="n">ratio</span> <span class="o">=</span> <span class="mi">1</span><span class="p">.</span><span class="mi">5</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">trigger</span> <span class="o">=</span> <span class="p">.</span><span class="mi">75</span>
+    <span class="p">},</span>
+    <span class="p">.</span><span class="n">shrink</span> <span class="o">=</span>
+    <span class="p">{</span>
+        <span class="p">.</span><span class="n">ratio</span> <span class="o">=</span> <span class="p">.</span><span class="mi">75</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">trigger</span> <span class="o">=</span> <span class="p">.</span><span class="mi">1</span>
+    <span class="p">},</span>
+    <span class="p">.</span><span class="n">obj_len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">my_obj</span><span class="p">),</span>
+    <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">my_logger</span>
+<span class="p">};</span>
 
-          <h1 id="errors">Errors</h1>
+</code></pre>
 
-<aside class="notice">This error section is stored in a separate file in `includes/_errors.md`. Slate allows you to optionally separate out your docs into many files&hellip;just save them to the `includes` folder and add them to the top of your `index.md`&rsquo;s frontmatter. Files are included in the order listed.</aside>
+<p>Recently, I found that just adding extra parameters won&rsquo;t fit the bill any longer, and so I decided to begin to rewrite everything again, implementing a new way to creating an object, whether that be a list, a thead_pool, or an event.</p>
 
-<p>The Kittn API uses the following error codes:</p>
+<p>This new way is simulator to the Configuration Object pattern, or well, it pretty much is. The configuration object will allow the user to fine-tune the objects during construction, such as assigning it a specific logger to log to (so no more logging to about 30 different files), if it should be synchronized (so no extra boolean parameter in every constructor), and other context-specific options. Each will also have its own default behavior, allowing for shorter and easier construction.</p>
 
-<table><thead>
-<tr>
-<th>Error Code</th>
-<th>Meaning</th>
-</tr>
-</thead><tbody>
-<tr>
-<td>400</td>
-<td>Bad Request &ndash; Your request sucks</td>
-</tr>
-<tr>
-<td>401</td>
-<td>Unauthorized &ndash; Your API key is wrong</td>
-</tr>
-<tr>
-<td>403</td>
-<td>Forbidden &ndash; The kitten requested is hidden for administrators only</td>
-</tr>
-<tr>
-<td>404</td>
-<td>Not Found &ndash; The specified kitten could not be found</td>
-</tr>
-<tr>
-<td>405</td>
-<td>Method Not Allowed &ndash; You tried to access a kitten with an invalid method</td>
-</tr>
-<tr>
-<td>406</td>
-<td>Not Acceptable &ndash; You requested a format that isn&rsquo;t json</td>
-</tr>
-<tr>
-<td>410</td>
-<td>Gone &ndash; The kitten requested has been removed from our servers</td>
-</tr>
-<tr>
-<td>418</td>
-<td>I&rsquo;m a teapot</td>
-</tr>
-<tr>
-<td>429</td>
-<td>Too Many Requests &ndash; You&rsquo;re requesting too many kittens! Slow down!</td>
-</tr>
-<tr>
-<td>500</td>
-<td>Internal Server Error &ndash; We had a problem with our server. Try again later.</td>
-</tr>
-<tr>
-<td>503</td>
-<td>Service Unavailable &ndash; We&rsquo;re temporarially offline for maintanance. Please try again later.</td>
-</tr>
-</tbody></table>
+<h1 id="threading">Threading</h1>
+
+<p>Provides utilities, abstractions and tools which help automate/manage multithreading,</p>
+
+<h2 id="thread-pool-stable-version-1-3">Thread Pool [<b>Stable</b>] Version: 1.3</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// Initialize a pool of 10 threads, enough to handle anything without wasting resources.
+</span><span class="k">static</span> <span class="k">const</span> <span class="kt">size_t</span> <span class="n">pool_size</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+
+<span class="c1">/// Example task for thread pool to run.
+</span><span class="k">static</span> <span class="kt">void</span> <span class="o">*</span><span class="n">task_example</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">args</span><span class="p">);</span>
+
+<span class="n">thread_pool_t</span> <span class="o">*</span><span class="n">tp</span> <span class="o">=</span> <span class="n">thread_pool_create</span><span class="p">(</span><span class="n">pool_size</span><span class="p">);</span>
+
+<span class="c1">/// Adds a task of medium priority (default), with no argument (NULL) nor flags (0)
+</span><span class="n">result_t</span> <span class="o">*</span><span class="n">result</span> <span class="o">=</span> <span class="n">thread_pool_add</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">task_example</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+<span class="c1">/// Adds the same task of high priority, no argument, and without a result.
+</span><span class="n">thread_pool_add</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">task_example</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">THIGH_PRIORITY</span> <span class="o">|</span> <span class="n">NO_RESULT</span><span class="p">);</span>
+<span class="c1">/// Note that you do not need to worry about cleaning up the result from TP_NO_RESULT.
+</span>
+<span class="c1">/// Wait on result with no timeout (-1).
+</span><span class="kt">void</span> <span class="o">*</span><span class="n">retval</span> <span class="o">=</span> <span class="n">result_get</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="c1">/// Destroy the result, as it no longer is needed.
+</span><span class="n">result_destroy</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+
+<span class="c1">/// Pause the thread pool for 5 seconds.
+</span><span class="n">thread_pool_pause</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
+<span class="c1">/// Wait on Thread Pool to finish everything.
+</span><span class="n">thread_pool_wait</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+
+<span class="c1">/// Destroy thread pool.
+</span><span class="n">thread_pool_destroy</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
+
+</code></pre>
+
+<p>thread_pool_t is a thread pool with it&rsquo;s own priority queue for tasks. As implied by the use of a priority queue, tasks may be submitted via 6 different priorities, Lowest, Low, Medium, High and Highest. High Priority tasks would jump ahead of tasks of Low priority, intuitively. </p>
+
+<p>The static thread pool maintains a steady amount of threads, never growing or shrinking in size, however unused threads will block, hence it will not waste resources waiting for a new task to be submitted. </p>
+
+<p>Each task can return an asynchronous result, which, based on my implementation of events, you may wait (or poll) for when the task finishes. So, to reiterate, a task, by default, returns a result which can be waited on.</p>
+
+<p>When submitting tasks, it comes with it&rsquo;s own default priority and will return a result_t result to wait on, but by passing certain flags, like HIGH_PRIORITY | NO_RESULT you may flag tasks specifically.</p>
+
+<p>Finally you can pause the thread pool, meaning, that currently running tasks finish up, but it will not run any more until after either a timeout elapses or the call to resume is made.</p>
+
+<p>Another note to mention is that the thread pool showcases the use of MU_Events, as waiting on a result is an event, so is to pause and resume.</p>
+
+<h2 id="scoped-locks-in-development-version-0-5">Scoped Locks [<b>In Development</b>] Version: 0.5</h2>
+<pre class="highlight c"><code>
+<span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+
+<span class="cm">/*
+    Allocation
+*/</span>
+<span class="c1">// If we want a spinlock?
+</span><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">lock_1</span> <span class="o">=</span> <span class="n">scoped_lock_spinlock</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
+<span class="c1">// What if we want to create one from an already existing lock?
+</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">lock</span><span class="p">;</span>
+<span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">lock_2</span> <span class="o">=</span> <span class="n">SCOPED_LOCK_FROM</span><span class="p">(</span><span class="n">lock</span><span class="p">);</span>
+<span class="c1">// What if we do not want a lock at times?
+</span><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">lock_3</span> <span class="o">=</span> <span class="n">scoped_lock_no_op</span><span class="p">();</span>
+
+<span class="cm">/*
+    Scoped Locking
+*/</span>
+<span class="c1">// Regardless of type, it will work the same.
+</span><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">s_lock</span><span class="p">;</span>
+
+<span class="c1">// Single-line
+</span><span class="n">SCOPED_LOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">)</span>
+    <span class="n">do_something</span><span class="p">();</span>
+
+<span class="c1">// Multi-line
+</span><span class="n">SCOPED_LOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">do_something</span><span class="p">();</span>
+    <span class="n">do_something_else</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">is_something</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Note, we return without needing to unlock.
+</span>        <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">finally_do_something</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="cm">/*
+    Sometimes the compilers throws a warning (or error) because you return inside of the scoped_lock block. This can be mitigated with the C_UTILS_UNACCESSEIBLE macro.
+*/</span>
+
+<span class="n">C_UTILS_UNACCESSIBLE</span><span class="p">;</span>
+
+</code></pre>
+
+<p>An implementation of a C++-like scope_lock. The premise is that locks should be managed on it&rsquo;s own, and is finally made possible using GCC and Clang&rsquo;s compiler attributes, <strong>cleanup</strong>. The locks supported so far are pthread_mutex_t, pthread_spinlock_t, and sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts the need for the need to lock/unlock the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.</p>
+
+<h2 id="conditional-locks-stable-version-1-0">Conditional Locks [<b>Stable</b>] Version: 1.0</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// Assume this gets initialized before being called.
+</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">lock</span><span class="p">;</span>
+<span class="c1">/// Etc.
+</span><span class="n">COND_RWLOCK_RDLOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
+<span class="c1">/// Later, maybe in some other thread...
+</span><span class="n">COND_RWLOCK_WRLOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
+
+</code></pre>
+
+<p>Features auto-logging locking macros for mutexes and rwlocks. It simply checks if the lock if NULL before attempting to lock, as attempting to lock a NULL pthread_*_t argument will cause a segmentation fault. Also should note that if something goes wrong, I.E on EDEADLK, it will log the precise location of said errors.</p>
+
+<p>Now imagine you have a data structure that uses rwlocks, or even mutexes. Now, the overhead of a mutex, no matter how optimized they are, is still unneeded on single threaded applications for said data structure. Hence, if lock is NULL it will result in a NOP, and do nothing. The compiler may even optimize away the check entirely and act like it&rsquo;s not there, who knows. The point being that it allows for more flexible data structures which can&rsquo;t be made lockless.</p>
+
+<h2 id="events-stable-version-1-2">Events [<b>Stable</b>] Version: 1.2</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// Logger for events. Assume it gets initialized and setup before calling events.
+</span><span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">event_logger</span><span class="p">;</span>
+<span class="cm">/*
+    The event object used for signaling and waiting on events.
+    This event is named "Test Event" and logs to the event logger,
+    inituitively. It is signaled by default, hence those calling to wait on it
+    will return immediately. The first thread to leave this event
+    successfully, will reset the event to non-signaled state.
+*/</span>
+<span class="n">event_t</span> <span class="o">*</span><span class="n">event</span> <span class="o">=</span> <span class="n">event_create</span><span class="p">(</span><span class="s">"Test Event"</span><span class="p">,</span> <span class="n">event_logger</span><span class="p">,</span> <span class="n">TU_EVENT_SIGNALED_BY_DEFAULT</span> <span class="o">|</span> <span class="n">TU_EVENT_AUTO_RESET</span><span class="p">);</span>
+<span class="c1">/// We now to want wait on this event. Thread identifier can be anything, but lets just use pthread_self.
+</span><span class="n">event_wait</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span> <span class="n">pthread_self</span><span class="p">());</span>
+<span class="c1">/// Now some other thread signals this...
+</span><span class="n">event_signal</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span> <span class="n">pthread_self</span><span class="p">());</span>
+<span class="cm">/* 
+    Now, we're done with said event. Destroy it. Note that if any threads are 
+    waiting on it, they are woken up and can gracefully exit.
+*/</span>
+<span class="n">event_destroy</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span> <span class="n">pthread_self</span><span class="p">());</span>
+
+</code></pre>
+
+<p>An implementation of Win32 Events. As of yet, it allows you to wait on an event, which is equivalent to waiting on a condition variable, signaled by other threads. </p>
+
+<p>events allows you to wait on events, and supports flags which allow you to set the default state, whether or not to signal the event after a timeout, and whether or not to auto-reset the event after a thread exits the event, or after the last waiting thread leaves. </p>
+
+<p>events is an abstraction on top of a pthread_mutex, pthread_cond variable, and other flags. MU_Events are entirely thread safe and efficient, and also entirely flexible, coming with it&rsquo;s own MU_Logger support. You can also name events and pass the thread identifier to allow debugging said events easier.</p>
+
+<h2 id="event-loop-unstable-version-0-6">Event Loop [<b>Unstable</b>] Version 0.6</h2>
+<pre class="highlight c"><code>
+<span class="kt">void</span> <span class="o">*</span><span class="nf">prepare_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">some_event_t</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="n">bool</span> <span class="nf">check_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">do_something_with</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="n">bool</span> <span class="nf">dispatch_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">notify_thread_waiting_on</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">bool</span> <span class="nf">finalize_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">bool</span> <span class="nf">print_something</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Something!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/*
+    The below is an example of how to use the event loop.
+    It creates a simple event with it's appropriate callbacks,
+    then sets it's timeout to 0, meaning it is polled on once every
+    10ms. Next is a timed_event, which is will print "Something!" once
+    every 10 seconds.
+*/</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">event_source_t</span> <span class="o">*</span><span class="n">event</span> <span class="o">=</span> <span class="n">event_source_create</span><span class="p">(</span><span class="n">prepare_event</span><span class="p">,</span> <span class="n">check_event</span><span class="p">,</span> <span class="n">dispatch_event</span><span class="p">,</span> <span class="n">finalize_event</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">event_source_t</span> <span class="o">*</span><span class="n">timed_event</span> <span class="o">=</span> <span class="n">event_source_create</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">print_something</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+
+    <span class="n">event_loop_t</span> <span class="o">*</span><span class="n">loop</span> <span class="o">=</span> <span class="n">event_loop_create</span><span class="p">();</span>
+
+    <span class="n">event_loop_add</span><span class="p">(</span><span class="n">loop</span><span class="p">,</span> <span class="n">event</span><span class="p">);</span>
+    <span class="n">event_loop_add</span><span class="p">(</span><span class="n">loop</span><span class="p">,</span> <span class="n">timed_event</span><span class="p">);</span>
+    <span class="n">event_loop_run</span><span class="p">(</span><span class="n">loop</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre>
+
+<p>event_loop, is a simple, minimal event loop, which allows you to add event sources, and have them be polled on at regular intervals. The Event Loop also has support for timed or timer events, upon which the dispatch callback will be called when it&rsquo;s timeout ellapses.</p>
+
+<p>The Event Loop is rather simple and bare bones for now, polling once every 10ms, hence the amount of precision is very high, yet somewhat expensive, however not too much so, but does not scale well when idle and does better when it has a lot of tasks to do/poll for.</p>
+
+<p>The Event Loop takes a prepare callback (to prepare any such data to be passed to an event when ready), a check callback (to check if the event is ready), a dispatch callback (to notify any threads waiting on the event), and finally a finalize callback (to destroy the user data when it is finished).</p>
+
+<h1 id="memory-management">Memory Management</h1>
+
+<p>Memory Management Utilities provide useful tools and abstractions which will help automate, or at the very least, improve quality-of-life for a C programmers, which can be helpful to an amateur or a professional. All of the below are thread safe.</p>
+
+<h2 id="hazard-pointers-unstable">Hazard Pointers [<b>Unstable</b>]</h2>
+<pre class="highlight c"><code>
+<span class="cm">/*
+    For an example, lets assume the structure of a basic
+    lock-free stack.
+*/</span>
+<span class="n">Stack_t</span> <span class="o">*</span><span class="n">stack</span><span class="p">;</span>
+<span class="cm">/*
+    Lets emulate a simple pop lockless procedure.
+*/</span>
+<span class="n">Node_t</span> <span class="o">*</span><span class="n">head</span><span class="p">,</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+<span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">head</span> <span class="o">=</span> <span class="n">stack</span><span class="o">-&gt;</span><span class="n">head</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">head</span><span class="p">)</span> 
+        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+
+    <span class="n">hazard_acquire</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">head</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">head</span> <span class="o">!=</span> <span class="n">stack</span><span class="o">-&gt;</span><span class="n">head</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">pthread_yield</span><span class="p">();</span>
+        <span class="k">continue</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">next</span> <span class="o">=</span> <span class="n">head</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">__sync_bool_compare_and_swap</span><span class="p">(</span><span class="o">&amp;</span><span class="n">stack</span><span class="o">-&gt;</span><span class="n">head</span><span class="p">,</span> <span class="n">head</span><span class="p">,</span> <span class="n">next</span><span class="p">))</span> 
+        <span class="k">break</span><span class="p">;</span>
+
+    <span class="n">pthread_yield</span><span class="p">();</span>
+<span class="p">}</span>
+<span class="kt">void</span> <span class="o">*</span><span class="n">data</span> <span class="o">=</span> <span class="n">head</span><span class="o">-&gt;</span><span class="n">item</span><span class="p">;</span>
+<span class="c1">// true = retire data, set to be deleted later, false = just remove reference
+</span><span class="n">hazard_release</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="nb">true</span><span class="p">);</span>
+
+</code></pre>
+
+<p>Provides a flexible and easy to use implementation of hazard pointers, described in the research paper by Maged M. Michael, <a href="http://www.research.ibm.com/people/m/michael/ieeetpds-2004.pdf">here</a>.</p>
+
+<p>The implementation is still in development and needing of testing, however I have an optimistic outlook on how it will look. Basically, you will &ldquo;acquire&rdquo; data via it&rsquo;s pointer and &ldquo;release&rdquo; it when you are finished. You must make sure to release the reference once finished with it, through the API calls hazard_acquire() and hazard_release and hazard_release_all.</p>
+
+<p>Another notable feature is that you do not need to keep your own reference to the hazard pointer itself, as it&rsquo;s allocated as thread-local storage and allocated on first use. Lastly, any remaining data not freed before the program ends, will be destroyed when the library is unlinked (I.E program termination).</p>
+
+<h2 id="reference-counting-memory-allocator-unimplemented">Reference Counting Memory Allocator [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>A simple memory allocator that wraps malloc and maintains a reference count
+
+<ul>
+<li>Reference count should go down whenever the wrapped free function is called.</li>
+</ul></li>
+<li>Each allocated item has it&rsquo;s own destructor
+
+<ul>
+<li>Registered by user
+
+<ul>
+<li>Defaults to free.</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<h2 id="object-pool-unimplemented">Object Pool [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Recycles a recyclable object to be used later.
+
+<ul>
+<li>A callback is used to inform and manipulate the objects themselves to restore them to a state that can be reused.</li>
+</ul></li>
+<li>Manages objects
+
+<ul>
+<li>Creates new ones when it is empty and requires more
+
+<ul>
+<li>Through callbacks</li>
+</ul></li>
+<li>Destroys old ones when they have not been used for a while
+
+<ul>
+<li>Through callbacks.</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<h1 id="string">String</h1>
+
+<p>Supplies basic string manipulations that are intuitive and easy to use.</p>
+
+<h2 id="string-manipulations-stable-version-2-1">String Manipulations [<b>Stable</b>] Version: 2.1</h2>
+<pre class="highlight c"><code>
+<span class="cm">/*
+    The below demonstrates the ease of use of declaring a string with the
+    typedef provided. Alternatively, you can declare it as char *str, which
+    can be used interchangeably.
+*/</span>
+<span class="n">string</span> <span class="n">str</span> <span class="o">=</span> <span class="s">"Hello World"</span><span class="p">;</span>
+
+<span class="cm">/*
+    The below demonstrates the memory management of strings being handled by
+    the compiler, automatically being destroyed when it leaves the scope of the
+    block of code.
+*/</span>
+<span class="n">string</span> <span class="n">TEMP</span> <span class="n">str</span> <span class="o">=</span> <span class="n">strdup</span><span class="p">(</span><span class="s">"Hello World"</span><span class="p">);</span>
+
+<span class="cm">/*
+    Now, on to the actual functions of this string manipulation library.
+    First, we will attempt to reverse a portion of the string, str, declared
+    above. We only wish to reverse "World" however, so we will make use of
+    pointer arithmetic to get the offset of the string. We want to reverse
+    everything after after "Hello ", so we pass 0 as the length to specify
+    that it is null terminated and that strlen can be used.
+*/</span>
+<span class="n">string_reverse</span><span class="p">(</span><span class="n">str</span> <span class="o">+</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+<span class="cm">/*
+    Now, for the next example, imagine we have a fixed amount, but a somewhat
+    large amount of strings to concatenate together, and you not only wish to
+    concatenate them together, but also apply some kind of delimiter. For
+    instance, SU_String_split can split an array into an array of strings
+    based on a delimiter, and you wish to join them together with a new
+    delimiter. While SU_String_replace can do the job just as well (better),
+    lets assume you actually modify the array of strings somehow. You have
+    two options here, either SU_String_join, which is easier, but you need to
+    pass an array, but what if you wish to append a new string, then you have
+    resize the array (if it's not constant), or create an entirely new one.
+    Instead, SU_STRING_CONCAT_ALL allows you to concatenate any number of
+    strings with an optional delimiter.
+*/</span>
+<span class="n">string</span> <span class="n">storage</span><span class="p">;</span>
+<span class="n">STRING_CONCAT_ALL</span><span class="p">(</span><span class="o">&amp;</span><span class="n">storage</span><span class="p">,</span> <span class="s">","</span><span class="p">,</span> <span class="n">str</span><span class="p">,</span> <span class="s">"How are you today"</span><span class="p">,</span> <span class="s">"Good I hope"</span><span class="p">,</span> <span class="s">"Good day!"</span><span class="p">);</span>
+
+<span class="cm">/*
+    The other functions are rather straight forward, however to go more into 
+    STRING_CONCAT_ALL, notice you do not need to add a NULL dummy parameter
+    or specify the size. That's because the preprocessor can determine it for
+    you, which it does.
+*/</span>
+</code></pre>
+
+<p>A basic, yet very powerful and conventional string manipulations library. Supports ASCII strings only, and some functions support the use of non NULL-terminated functions.</p>
+
+<p>From simple string reversal or splitting and joining a string based on a delimiter, or even dynamic concatenation of strings, is all included in this library. This library fixes and improves upon the standard libc and glibc library by adding functionality that is sorely missing, in an efficient manner.</p>
+
+<p>There is also a convenience typedef for cstrings, String, which abstracts the need to use pointers. Lastly, there is a convenience macro that can be used to handle memory management of non-constant strings, TEMP, which utilitizes the GCC or Clang&rsquo;s compiler attributes.</p>
+
+<h2 id="string-buffer-in-development">String Buffer [<b>In Development</b>]</h2>
+<pre class="highlight c"><code>
+<span class="c1">// Allocate with initial value with no synchronization
+</span><span class="n">string_buffer_t</span> <span class="o">*</span><span class="n">str_buf</span> <span class="o">=</span> <span class="n">string_buffer_create</span><span class="p">(</span><span class="s">"Hello World"</span><span class="p">,</span> <span class="nb">false</span><span class="p">);</span>
+
+<span class="c1">// Append strings
+</span><span class="n">string_buffer_append</span><span class="p">(</span><span class="n">str_buf</span><span class="p">,</span> <span class="s">", I am "</span><span class="p">);</span>
+
+<span class="c1">// Append numbers
+</span><span class="n">STRING_BUFFER_APPEND</span><span class="p">(</span><span class="n">str_buf</span><span class="p">,</span> <span class="mi">22</span><span class="p">);</span>
+
+<span class="c1">// But wait, there's a better way to do this...
+</span><span class="n">string_buffer_clear</span><span class="p">(</span><span class="n">str_buf</span><span class="p">);</span>
+
+<span class="c1">// Lets append all from one macro!
+</span><span class="n">STRING_BUFFER_APPEND_FORMAT</span><span class="p">(</span><span class="n">str_buf</span><span class="p">,</span> <span class="s">"Hello World, I am %d years old!"</span><span class="p">,</span> <span class="mi">22</span><span class="p">);</span>
+
+<span class="c1">// Now lets delete Hello World
+</span><span class="n">string_buffer_delete</span><span class="p">(</span><span class="n">str_buf</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">12</span><span class="p">);</span>
+
+<span class="c1">// And remove the "old!" part
+</span><span class="n">string_buffer_delete</span><span class="p">(</span><span class="n">str_buf</span><span class="p">,</span> <span class="n">STRING_BUFFER_END</span> <span class="o">-</span> <span class="mi">3</span><span class="p">,</span> <span class="n">STRING_BUFFER_END</span><span class="p">);</span>
+
+<span class="c1">// And retrieve so we can display it.
+</span><span class="kt">char</span> <span class="o">*</span><span class="n">str</span> <span class="o">=</span> <span class="n">string_buffer_get</span><span class="p">(</span><span class="n">str_buf</span><span class="p">);</span>
+<span class="n">puts</span><span class="p">(</span><span class="n">str</span><span class="p">);</span>
+
+</code></pre>
+
+<p>Abstracts away the need to manually allocate strings and do tedious string manipulations. The string_buffer automatically manages resizing itself and shrinking when needed. It features a generic macro (requires C11 _Generic keyword) to automatically append, prepend or insert any of the standard types. It is also optionally thread-safe.</p>
+
+<p>The string_buffer supports an option to enable synchronizaiton, which is done through a spinlock. Majority of cases do not require synchronization, however if ever you have a case where you require one, for say a producer-consumer relationship, it can be enabled easily. </p>
+
+<h2 id="regular-expressions-unimplemented">Regular Expressions [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Easy abstracions for regular expressions
+
+<ul>
+<li>No need for cleaning up anything</li>
+</ul></li>
+<li>Special regex printf function
+
+<ul>
+<li>Use printf with regex to determine what to select from a passed string</li>
+</ul></li>
+</ul>
+
+<h1 id="i-o">I/O</h1>
+
+<p>Brings useful abstractions when dealing with streams through file descriptors. Buffering (I.E line-by-line), to asynchronous reading/writing without needing to worry if it is a FILE or socket file descriptor. Also features a configurable logging utility.</p>
+
+<h3 id="logger-stable-version-1-5">Logger [<b>Stable</b>] Version: 1.5</h3>
+<pre class="highlight c"><code>
+<span class="cm">/*
+    Instantiation
+*/</span>
+<span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+<span class="n">LOGGER_AUTO_CREATE</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="s">"Test_File.txt"</span><span class="p">,</span> <span class="s">"w"</span><span class="p">,</span> <span class="n">LOG_LEVEL_ALL</span><span class="p">);</span>
+
+<span class="cm">/*
+    Usage
+*/</span>
+<span class="n">LOG_INFO</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="s">"Hello %s"</span><span class="p">,</span> <span class="s">"World"</span><span class="p">);</span>
+<span class="n">DEBUG</span><span class="p">(</span><span class="s">"Hello World"</span><span class="p">);</span>
+<span class="n">ASSERT</span><span class="p">(</span><span class="mi">1</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="s">"1 != 0!"</span><span class="p">);</span>
+
+</code></pre>
+
+<p>A minimal logging utility which supports logging based on log levels, with it&rsquo;s own custom formatting. Also supports a custom log level with custom log label for formatting. Supports the usage of the <strong>constructro</strong> and <strong>destructor</strong> compiler attributes (available with Clang and GCC) to automatically manage the lifetime of the logger, through the LOGGER_AUTO_CREATE macro.</p>
+
+<p>Below is an example of a custom format. This is the default logging format used when no custom format has been provided.</p>
+
+<p>&ldquo;%tsm [%lvl](%fle:%lno) %fnc(): \n\&rdquo;%msg\&ldquo;\n&rdquo;</p>
+
+<p>Would produce the following:</p>
+
+<p>9:39:32 PM [INFO](test_file:63) main():
+&ldquo;Hello World!&rdquo;</p>
+
+<p>The currently implemented log format tokens are&hellip;</p>
+
+<p>%tsm: Timestamp (HH/MM/SS AM/PM)
+%lvl: Log Level
+%fle: File
+%lno: Line Number
+%fnc: Function
+%msg: Message
+%cond: Condition (Used for assertions)</p>
+
+<h3 id="planned-features">Planned Features</h3>
+
+<ul>
+<li>Configuration File support</li>
+<li>Logging to a set of loggers rather than just one
+
+<ul>
+<li>Allows a group of loggers with different log levels to be logged to</li>
+<li>Allows late registration and unregistration for injection</li>
+</ul></li>
+<li>More Log Format Tokens</li>
+</ul>
+
+<h2 id="event-polling-unimplemented">Event Polling [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Create event_sources from file descriptors
+
+<ul>
+<li>Use local sockets to emit local events</li>
+<li>Monitor non-local sockets</li>
+<li>Asynchronously read files</li>
+</ul></li>
+<li>event_sources allows for registering callbacks to handle events
+
+<ul>
+<li>Passes the userpassed data and the file descriptor</li>
+<li>Allows for asynchronous handling of events.</li>
+</ul></li>
+<li>event_poller(?) created in another thread which manages itself
+
+<ul>
+<li>Handles event_sources submitted</li>
+</ul></li>
+<li>Goal
+
+<ul>
+<li>Allow for truely easy and effortless asynchronicity.</li>
+</ul></li>
+</ul>
+
+<h2 id="file-buffering-unimplemented">File Buffering [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Stream over a file by buffering a certain amount of it at a time
+
+<ul>
+<li>Will support buffering by line.
+
+<ul>
+<li>Effortless next_line and prev_line abstractions</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<h2 id="asyncronous-streams-unimplemented">Asyncronous Streams [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Stream over an abitrary collection of items
+
+<ul>
+<li>strings </li>
+<li>lists</li>
+<li>maps</li>
+<li>arrays</li>
+<li>etc.</li>
+</ul></li>
+<li>Streams can be updated concurrently as they are being taken from
+
+<ul>
+<li>Easy Producer-Consumer</li>
+</ul></li>
+</ul>
+
+<h1 id="networking">Networking</h1>
+
+<p>Provides basic networking utilities which allow a developer with almost no experience with sockets to manage connections, send/receive data, etc. Also features two managers and recycling pools for connections, allowing for efficient use.</p>
+
+<h2 id="connection-stable-version-1-1">Connection [<b>Stable</b>] Version: 1.1</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// Unlike normal bsd socket functions, my abstractions provide a timeout.
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">timeout</span> <span class="o">=</span> <span class="mi">60</span><span class="p">;</span>
+<span class="c1">/// The flags to be passed to send().
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">send_flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="c1">/// The flags to be passed to recv().
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">recv_flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="n">connection_t</span> <span class="o">*</span><span class="n">conn</span><span class="p">;</span>
+<span class="c1">/// Assume it's been setup and configured and already.
+</span><span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">BUFSIZ</span><span class="p">];</span>
+
+<span class="kt">size_t</span> <span class="n">bytes_sent</span> <span class="o">=</span> <span class="n">connection_send</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">BUFSIZ</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">send_flags</span><span class="p">);</span>
+<span class="n">assert</span><span class="p">(</span><span class="n">bytes_sent</span><span class="p">);</span>
+
+<span class="c1">// Simple error checking, assertions are easy for small programs.
+</span><span class="kt">size_t</span> <span class="n">bytes_received</span> <span class="o">=</span> <span class="n">connection_receive</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">BUFSIZ</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">recv_flags</span><span class="p">);</span>
+<span class="n">assert</span><span class="p">(</span><span class="n">bytes_sent</span><span class="p">);</span>
+
+<span class="n">printf</span><span class="p">(</span><span class="s">"%.*s"</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">bytes_received</span><span class="p">,</span> <span class="n">buf</span><span class="p">);</span>
+
+</code></pre>
+
+<p>connection is the base file for all transactions on sockets and between endpoints. It contains all sending and receiving functions and logs everything. It can be created manually through connection_create() and connection_init() but it&rsquo;s best created through the abstractions, server and client. </p>
+
+<h2 id="server-stable-version-1-0">Server [<b>Stable</b>] Version: 1.0</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// The initial connection pool size
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">connection_pool</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="c1">/// The initial bound socket pool size.
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">bound_socket_pool</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+<span class="c1">/// Whether or not locks are initialized. 0 for single-threaded or care multithreading.
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">is_threaded</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="c1">/// The IP address to bind to. If it is NULL, it is bound INADDR_ANY
+</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ip_addr</span> <span class="o">=</span> <span class="s">"127.0.0.1"</span><span class="p">;</span>
+<span class="c1">/// Port to bind to.
+</span><span class="k">const</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">port</span> <span class="o">=</span> <span class="mi">8000</span><span class="p">;</span>
+<span class="c1">/// Unlike normal bsd socket functions, my abstractions provide a timeout.
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">timeout</span> <span class="o">=</span> <span class="mi">60</span><span class="p">;</span>
+
+<span class="n">server_t</span> <span class="o">*</span><span class="n">server</span> <span class="o">=</span> <span class="n">server_create</span><span class="p">(</span><span class="n">connection_pool</span><span class="p">,</span> <span class="n">bound_socket_pool</span><span class="p">,</span> <span class="n">is_threaded</span><span class="p">);</span>
+<span class="c1">/// connection_pool used as backlog too.
+</span><span class="n">socket_t</span> <span class="o">*</span><span class="n">bsock</span> <span class="o">=</span> <span class="n">server_bind</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">connection_pool</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">ip_addr</span><span class="p">);</span>
+<span class="n">connection_t</span> <span class="o">*</span><span class="n">conn</span> <span class="o">=</span> <span class="n">server_accept</span><span class="p">(</span><span class="n">server</span><span class="p">,</span> <span class="n">bsock</span><span class="p">,</span> <span class="n">timeout</span><span class="p">);</span>
+
+</code></pre>
+
+<p>The philosophy of the server is that it acts as a manager for connection objects, which are completely configured and connected to a client. The server also manages a resource and recycling pool of connection objects as well for after you disconnect them. The server also allows you to manage multiple bindings of ports.</p>
+
+<h2 id="client-stable-version-1-0">Client [<b>Stable</b>] Version: 1.0</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// The initial connection pool size
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">connection_pool</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="c1">/// Whether or not locks are initialized. 0 for single-threaded or care multithreading.
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">is_threaded</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="c1">/// The host's IP Address.
+</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ip_addr</span> <span class="o">=</span> <span class="s">"127.0.0.1"</span><span class="p">;</span>
+<span class="c1">/// Port to bind to.
+</span><span class="k">const</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">port</span> <span class="o">=</span> <span class="mi">8000</span><span class="p">;</span>
+<span class="c1">/// Unlike normal bsd socket functions, my abstractions provide a timeout.
+</span><span class="k">const</span> <span class="kt">int</span> <span class="n">timeout</span> <span class="o">=</span> <span class="mi">60</span><span class="p">;</span>
+
+<span class="n">client_t</span> <span class="o">*</span><span class="n">client</span> <span class="o">=</span> <span class="n">client_create</span><span class="p">(</span><span class="n">connection_pool</span><span class="p">,</span> <span class="n">is_threaded</span><span class="p">);</span>
+<span class="n">connection_t</span> <span class="o">*</span><span class="n">conn</span> <span class="o">=</span> <span class="n">client_connect</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">ip_addr</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">timeout</span><span class="p">);</span>
+
+</code></pre>
+
+<p>The philosophy of client follows server, in that it acts as a manager for connection objects, completely configured and initialized. Unlike the client, obviously, there is no need to bind to a port or create a bound socket type object.</p>
+
+<h2 id="http-unstable-version-0-5">HTTP [<b>Unstable</b>] Version 0.5</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// Assume header gets filled out by some request.
+</span><span class="kt">char</span> <span class="n">header</span><span class="p">[</span><span class="n">BUFSIZ</span><span class="p">];</span>
+<span class="kt">size_t</span> <span class="n">request_size</span><span class="p">;</span>
+<span class="n">request_t</span> <span class="o">*</span><span class="n">req</span> <span class="o">=</span> <span class="n">request_create</span><span class="p">();</span>
+<span class="n">request_append_header</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">request_size</span><span class="p">);</span>
+<span class="kt">FILE</span> <span class="o">*</span><span class="n">file</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">path</span><span class="p">,</span> <span class="s">"r"</span><span class="p">);</span>
+<span class="n">response_t</span> <span class="o">*</span><span class="n">res</span> <span class="o">=</span> <span class="n">response_create</span><span class="p">();</span>
+<span class="cm">/*
+    Note that it takes a rather elegant looking key-value pair, in the guise
+    of a struct with two char * members. What the macro does, in gist, is
+    that it takes (field_t) { x, y }, into { x, y } by converting it for you.
+    Hence (field_t) { "Content-Length", file_size } becomes a much better:
+    { "Content-Length", file_size }.
+*/</span>
+<span class="n">RESPONSE_WRITE</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">HTTP_VER_1_0</span><span class="p">,</span>
+ <span class="p">{</span> <span class="s">"Content-Length"</span><span class="p">,</span> <span class="n">get_page_size</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="p">},</span>
+ <span class="p">{</span> <span class="s">"Content-Type"</span><span class="p">,</span> <span class="n">content_type</span> <span class="p">}</span>
+ <span class="p">);</span>
+<span class="kt">char</span> <span class="o">*</span><span class="n">response</span> <span class="o">=</span> <span class="n">response_to_string</span><span class="p">(</span><span class="n">res</span><span class="p">);</span>
+
+</code></pre>
+
+<p>http is a simple yet minimal parsing, and generating, HTTP library. It allows you to parse HTTP requests and responses, as well generate your own by setting fields, resposne statuses, etc. by the use of it&rsquo;s API.</p>
+
+<p>http is split between two objects: response_t and request_t, both of which take a buffer, not having to be NULL-terimainted, and returns what&rsquo;s left in the buffer after it parses out the rest. Hence, if you pass both the HTTP header and the message body, it will return the offset (note here) of where the message body begins. It allows you to check if a field is set by using a hash table of it&rsquo;s field-value pairs, file path, response status, HTTP version, etc. </p>
+
+<p>It&rsquo;s rather simple and elegant (in the creator&rsquo;s biased opinion).</p>
+
+<h1 id="data-structures">Data Structures</h1>
+
+<h2 id="iterator-in-development-version-0-5">Iterator [<b>In Development</b>] Version: 0.5</h2>
+<pre class="highlight c"><code>
+<span class="cm">/*
+    Imagine that the below data structures are initialized already, containing strings.
+*/</span>
+<span class="n">list_t</span> <span class="o">*</span><span class="n">list</span><span class="p">;</span>
+<span class="n">vector_t</span> <span class="o">*</span><span class="n">vec</span><span class="p">;</span>
+<span class="n">map_t</span> <span class="o">*</span><span class="n">map</span><span class="p">;</span>
+
+<span class="cm">/*
+    Obtain the iterator of each in an array of iterators, like below.
+*/</span>
+<span class="n">iterator_t</span> <span class="o">*</span><span class="n">it</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> 
+    <span class="n">list_iterator</span><span class="p">(</span><span class="n">list</span><span class="p">),</span> 
+    <span class="n">vector_iterator</span><span class="p">(</span><span class="n">vec</span><span class="p">),</span> 
+    <span class="n">map_iterator</span><span class="p">(</span><span class="n">map</span><span class="p">)</span> 
+<span class="p">};</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">str</span><span class="p">;</span>
+    <span class="n">ITERATOR_FOR_EACH</span><span class="p">(</span><span class="n">str</span><span class="p">,</span> <span class="n">it</span><span class="p">)</span>
+        <span class="n">puts</span><span class="p">(</span><span class="n">str</span><span class="p">);</span>
+<span class="p">}</span>
+
+</code></pre>
+
+<p>A general-use and generic iterator which allows for concurrent and modification safe iteration. Each data structure will implement their own callbacks for this iterator to invoke, in a way to be more efficient. All iterators (to date) have a node correction algorithm, where if the current node has been removed, it will attempt to use the previously capture next node. </p>
+
+<p>The iterator will also maintain a reference (note: add to the reference count) to the underlying data structure to ensure that it will not be freed and invoke undefined behavior. As well, the iterator keeps track of each node (reference) so as to not invoke undefined behavior and avoid any ABA problems that can arise from node corrections. Finally, the iterator can optionally keep reference to the items themselves to allow the user to safely use them, even if they are being concurrently &ldquo;deleted&rdquo;.</p>
+
+<p>The iterator is generic enough so that you can mix-and-match between different types, such as list, map, and in the future, vector. This allows for effortless API calls without having to worry about what data structure was used to create it.</p>
+
+<h2 id="linked-list-stable-version-1-2">Linked List [<b>Stable</b>] Version: 1.2</h2>
+<pre class="highlight c"><code>
+<span class="kt">int</span> <span class="n">comparator</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">item_one</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">item_two</span><span class="p">);</span>
+
+<span class="k">const</span> <span class="n">bool</span> <span class="n">synchronized</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+<span class="kt">void</span> <span class="o">*</span><span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">item_two</span><span class="p">;</span>
+
+<span class="n">list_t</span> <span class="o">*</span><span class="n">list</span> <span class="o">=</span> <span class="n">list_create</span><span class="p">(</span><span class="n">synchronized</span><span class="p">);</span>
+<span class="c1">// Assume item was already allocated and points to a valid piece of memory.
+</span><span class="n">list_add</span><span class="p">(</span><span class="n">list</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+<span class="c1">// We added the item to the list, unsorted. The third argument is a callback to add in sorted order.
+</span><span class="n">list_add</span><span class="p">(</span><span class="n">list</span><span class="p">,</span> <span class="n">item_two</span><span class="p">,</span> <span class="n">comparator</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="n">tmp</span><span class="p">;</span>
+<span class="c1">// Loop for_each
+</span><span class="n">LIST_FOR_EACH</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">list</span><span class="p">)</span>
+    <span class="n">do_something_with</span><span class="p">(</span><span class="n">tmp</span><span class="p">);</span>
+
+<span class="c1">// The list is "Smart" enough to keep track of if an unsorted item was added, and will sort the list for you.
+</span><span class="n">list_get</span><span class="p">(</span><span class="n">list</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+<span class="n">list_remove</span><span class="p">(</span><span class="n">list</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+<span class="n">list_destroy</span><span class="p">(</span><span class="n">list</span><span class="p">,</span> <span class="n">free</span><span class="p">);</span>
+
+</code></pre>
+
+<p>A simple, yet robust double linked list implementation. It is thread-safe, and with the use of read-write locks, allows for very efficient read-often-write-rarely uses, but it&rsquo;s also good for general usage as well. </p>
+
+<p>It features a way to sort the list through the use of comparators, a for-each callback and macro that can be called on all items in the list, a print-all function to print everything in a neat, formatted way, and an implementation for iterator_t.</p>
+
+<h2 id="priority-blocking-queue-stable-version-1-3">Priority Blocking Queue [<b>Stable</b>] Version: 1.3</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// The comparator. Simple, as it just compares two integers.
+</span><span class="kt">int</span> <span class="nf">compare_vals</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg_one</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">arg_two</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">*</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span><span class="n">arg_one</span> <span class="o">-</span> <span class="o">*</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span><span class="n">arg_two</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">/// Create the queue. If the max size is 0, it is unbounded.
+</span><span class="n">priority_queue_t</span> <span class="o">*</span><span class="n">queue</span> <span class="o">=</span> <span class="n">priority_queue_create</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">compare_vals</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="n">num</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="c1">/// Enqueue's timeout does nothing if it is unbounded as it will never block.
+</span><span class="n">priority_queue_enqueue</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">num</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+
+<span class="c1">/// Dequeue on the other handle will block if it is empty.
+</span><span class="n">priority_queue_dequeue</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="c1">/// Now forcefully dequeue until timeout of 5 seconds, as it is now empty.
+</span><span class="n">priority_queue_dequeue</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
+<span class="c1">/// Now, purposefully wait undefinitely, normally this will cause a deadlock if no other thread enqueues, but observe.
+</span><span class="n">priority_queue_dequeue</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+
+<span class="c1">/// Now imagine this is called in another thread...
+</span><span class="n">priority_queue_destroy</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="n">free</span><span class="p">);</span>
+<span class="cm">/*
+    priority_queue_destroy takes a callback which fits free perfectly, but any 
+    other function can be used. If the queue has threads waiting on it, like 
+    MU_Events, it will wake up all threads and wait for it to exit 
+    appropriately before destruction.
+*/</span>
+</code></pre>
+
+<p>The priority_queue, is a simple, synchronized queue that sorts elements based on the comparator passed, if there is one. If there isn&rsquo;t one, then it acts a normal queue, making it flexible. </p>
+
+<p>It&rsquo;s enqueue and dequeue allows the use of a timeout, which a timeout of 0 allows you to poll, acting as a normal non-blocking queue as need be. It&rsquo;s synchronized nature allows it to sorted and cleared without the limits of a lockless queue, but lacks the performance of one, but overall it is moderately light weight and very intuitive and easy to use.</p>
+
+<p>If the priority_queue is destroyed, the waiting threads will wake up and exit.</p>
+
+<h2 id="vector-unimplemented">Vector [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Simple vector implementation using arrays.
+
+<ul>
+<li>Synchronized with spinlock.</li>
+</ul></li>
+</ul>
+
+<h2 id="lock-free-stack-unstable">Lock-Free Stack [<b>Unstable</b>]</h2>
+<pre class="highlight c"><code>
+<span class="n">stack_t</span> <span class="o">*</span><span class="n">stack</span> <span class="o">=</span> <span class="n">stack_create</span><span class="p">();</span>
+<span class="n">stack_push</span><span class="p">(</span><span class="n">stack</span><span class="p">,</span> <span class="s">"Hello World"</span><span class="p">);</span>
+<span class="n">stack_pop</span><span class="p">(</span><span class="n">stack</span><span class="p">);</span>
+<span class="n">stack_destroy</span><span class="p">(</span><span class="n">stack</span><span class="p">,</span> <span class="n">free</span><span class="p">);</span>
+
+</code></pre>
+
+<p>The lockless stack utilizes MU_Hazard_Pointers to avoid the ABA problem and allow safe deallocation of nodes after they are popped off the stack. The stack is guaranteed not to lock, hence all threads are constantly making progres, and will yield if they fail on atomic compare and swaps to lower contention. </p>
+
+<h2 id="lock-free-queue-unstable">Lock-Free Queue [<b>Unstable</b>]</h2>
+<pre class="highlight c"><code>
+<span class="n">queue_t</span> <span class="o">*</span><span class="n">queue</span> <span class="o">=</span> <span class="n">queue_create</span><span class="p">();</span>
+<span class="n">queue_enqueue</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="s">"Hello World"</span><span class="p">);</span>
+<span class="n">queue_dequeue</span><span class="p">(</span><span class="n">queue</span><span class="p">);</span>
+<span class="n">queue_destroy</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="n">free</span><span class="p">);</span>
+
+</code></pre>
+
+<p>The lockless queue utilitizes hazard pointers to solve the ABA problem, is fast and minimal, and guaranteed to never block or deadlock. Like the stack, it will yield if it fails on a compare and swap to lower overall contention</p>
+
+<h2 id="ring-buffer-unimplemented">Ring Buffer [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Lock-Free Ring Buffer implementation</li>
+<li>Allows writing and read
+
+<ul>
+<li>Writing rings around, overwriting once full</li>
+</ul></li>
+</ul>
+
+<h2 id="hash-map-stable-version-1-0">Hash Map [<b>Stable</b>] Version: 1.0</h2>
+<pre class="highlight c"><code>
+<span class="k">const</span> <span class="kt">int</span> <span class="n">init_bucket_size</span> <span class="o">=</span> <span class="mi">31</span><span class="p">;</span>
+<span class="k">const</span> <span class="n">bool</span> <span class="n">synchronized</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+
+<span class="c1">// Assume it just returns the string directly.
+</span><span class="kt">char</span> <span class="o">*</span><span class="n">to_string</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">);</span>
+
+<span class="n">map_t</span> <span class="o">*</span><span class="n">map</span> <span class="o">=</span> <span class="n">map_create</span><span class="p">(</span><span class="n">init_bucket_size</span><span class="p">,</span> <span class="n">synchronized</span><span class="p">);</span>
+
+<span class="n">map_add</span><span class="p">(</span><span class="s">"Hello World"</span><span class="p">,</span> <span class="s">"How are you"</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"%s"</span><span class="p">,</span> <span class="n">map_get</span><span class="p">(</span><span class="s">"Hello World"</span><span class="p">));</span>
+
+<span class="kt">size_t</span> <span class="n">key_val_size</span><span class="p">;</span>
+<span class="kt">char</span> <span class="o">**</span><span class="n">key_val_pairs</span> <span class="o">=</span> <span class="n">map_key_value_to_string</span><span class="p">(</span>
+    <span class="n">map</span><span class="p">,</span> <span class="s">"("</span><span class="p">,</span> <span class="s">","</span><span class="p">,</span> <span class="s">")"</span><span class="p">,</span><span class="o">&amp;</span><span class="n">key_val_size</span><span class="p">,</span> <span class="n">to_string</span>
+<span class="p">);</span>
+
+</code></pre>
+
+<p>A basic, synchronized hash map implementation. It&rsquo;s thread-safe, but not lockless, yet it fulfills it&rsquo;s purpose. It takes string keys, but it&rsquo;s value can be anything.</p>
+
+<h2 id="deque-unimplemented">Deque [<b>Unimplemented</b>]</h2>
+
+<h3 id="planned">Planned</h3>
+
+<ul>
+<li>Double-edged Queue
+
+<ul>
+<li>Pop and Dequeue</li>
+<li>Push and Enqueue</li>
+</ul></li>
+<li>Spinlock for synchronization</li>
+</ul>
+
+<h1 id="misc">Misc.</h1>
+
+<h2 id="timer-unstable-version-1-0">Timer [<b>Unstable</b>] Version: 1.0</h2>
+
+<p>A basic timer utility, allowing you to start and stop a timer and get a string representation of the total time.</p>
+
+<h2 id="flags-stable-version-1-0">Flags [<b>Stable</b>] Version: 1.0</h2>
+<pre class="highlight c"><code>
+<span class="c1">/// Sample flag, the easiest way to bitwise flags without doing the math yourself
+</span><span class="cp">#define SIMPLE_FLAG 1 &lt;&lt; 0
+</span><span class="c1">/// You can also use a constant expression.
+</span><span class="k">static</span> <span class="k">const</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">scope_respecting_flag</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span><span class="p">;</span>
+<span class="c1">/// Or use an enumeration
+</span><span class="k">typedef</span> <span class="k">enum</span> <span class="p">{</span>
+    <span class="n">flag_one</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="n">flag_two</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">flag_three</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span>
+<span class="p">}</span> <span class="n">flags</span><span class="p">;</span>
+
+<span class="c1">/// Now to show how to use the given MU_Flag macros.
+</span>
+<span class="c1">/// Initialize a mask of flags.
+</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">SIMPLE_FLAG</span> <span class="o">|</span> <span class="n">scope_respecting_flag</span> <span class="o">|</span> <span class="n">flag_one</span><span class="p">;</span>
+<span class="c1">/// Can determine if a flag has been passed in the mask above. Will be true.
+</span><span class="n">bool</span> <span class="n">has_simple_flag</span> <span class="o">=</span> <span class="n">MU_FLAG_GET</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">scope_respecting_flag</span><span class="p">);</span>
+<span class="c1">/// Sets the flag_two flag in the mask
+</span><span class="n">FLAG_SET</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">flag_two</span><span class="p">);</span>
+<span class="c1">/// Removes the SIMPLE_FLAG mask from the mask
+</span><span class="n">FLAG_CLEAR</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">SIMPLE_FLAG</span><span class="p">);</span>
+<span class="c1">/// Toggles flag_three on.
+</span><span class="n">FLAG_TOGGLE</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">flag_three</span><span class="p">);</span>
+
+</code></pre>
+
+<p>Provides extremely simple yet extremely useful flags for bitmasking. In fact, it is so simple, you actually do not even need to know how bitwise operations even work. They provide macros that allow you to determine if a flag is set in a mask, to set a flag, clear a flag or even toggle a flag. They are extremely simple, once again.</p>
+
+<h2 id="argument-checking-stable-version-1-1">Argument Checking [<b>Stable</b>] Version: 1.1</h2>
+<pre class="highlight c"><code>
+<span class="c1">// Assume this is initialized sometime before test_func is called.
+</span><span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="n">bool</span> <span class="n">is_valid</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">test_struct</span><span class="p">;</span>
+
+<span class="n">bool</span> <span class="nf">test_func</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">msg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">val</span><span class="p">,</span> <span class="n">test_struct</span> <span class="o">*</span><span class="n">test</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">ARG_CHECK</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="nb">false</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">,</span> <span class="n">test</span><span class="p">,</span> <span class="n">test</span> <span class="o">&amp;&amp;</span> <span class="n">test</span><span class="o">-&gt;</span><span class="n">is_valid</span><span class="p">);</span>
+    <span class="cm">/*
+        ARG_CHECK takes a logger to log to, the return value, and then up to 8 arguments. Once again note that you must short-circuit test to get it's is_valid member safely as this is a limitation of macros.
+    */</span>
+<span class="p">}</span>
+
+</code></pre>
+
+<p>Features a very simple and easy to use macro that can check up to 8 arguments, logging the conditionals as strings and whether or not they are true or false. It should be noted that due to the limitations of macros, it does not feature short-circuit evaluations, hence if you are going to be checking struct members for validity you must check each time to see if the struct exists.</p>
+
+<p>If any of the conditions fail, it will output the following. For this example, assume test&rsquo;s is_valid member is false.</p>
+
+<p>Invalid Arguments=&gt; { msg: TRUE; val &gt; 0 &amp;&amp; val &lt; 100: TRUE; test: TRUE; test &amp;&amp; test-&gt;is_valid: FALSE }</p>
+
+<h2 id="allocation-checker">Allocation Checker</h2>
+<pre class="highlight c"><code>
+<span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+
+<span class="kt">char</span> <span class="o">*</span><span class="n">str</span><span class="p">;</span>
+<span class="n">ON_BAD_MALLOC</span><span class="p">(</span><span class="n">str</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="k">goto</span> <span class="n">err</span><span class="p">;</span>
+
+<span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">lock</span><span class="p">;</span>
+<span class="n">ON_BAD_CALLOC</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">lock</span><span class="p">))</span>
+    <span class="k">goto</span> <span class="n">err_lock</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="o">*</span><span class="n">arr</span><span class="p">;</span>
+<span class="n">ON_BAD_REALLOC</span><span class="p">(</span><span class="o">&amp;</span><span class="n">arr</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="p">)</span> <span class="o">*</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="k">goto</span> <span class="n">err_arr</span><span class="p">;</span>
+
+<span class="n">err_arr</span><span class="o">:</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">lock</span><span class="p">);</span>
+<span class="n">err_lock</span><span class="o">:</span>
+    <span class="n">free</span><span class="p">(</span><span class="n">str</span><span class="p">);</span>
+<span class="n">err</span><span class="o">:</span>
+    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+
+</code></pre>
+
+<p>Simple macros which check for a bad allocation, and if so will execute the block of code after it, using the macro for loop trick. So, if you wanted to use malloc, but return NULL or free up other resources on error, you would define the on-error block which will ONLY be called if things go wrong.</p>
+
+<h2 id="portable-temp_failure_retry-stable-version-1-0">Portable TEMP_FAILURE_RETRY [<b>Stable</b>] Version: 1.0</h2>
+<pre class="highlight c"><code>
+<span class="kt">FILE</span> <span class="o">*</span><span class="n">file</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(...);</span>
+<span class="c1">/// Assume this contains a valid file.
+</span><span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">BUFSIZ</span><span class="p">];</span>
+<span class="kt">size_t</span> <span class="n">bytes_read</span><span class="p">;</span>
+<span class="n">C_UTILS_TEMP_FAILURE_RETRY</span><span class="p">(</span><span class="n">bytes_read</span><span class="p">,</span> <span class="n">fread</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">BUFSIZ</span><span class="p">,</span> <span class="n">file</span><span class="p">));</span>
+<span class="c1">/// Etc.
+</span>
+</code></pre>
+
+<p>As GCC&rsquo;s TEMP_FAILURE_RETRY macro allows you to restart functions which return -1 and set errno to EINTR, which allow for consistent programming regardless of signals. The macro I implement is merely, an abuse of the comma operator to loop until EINTR is no longer set.</p>
 
       </div>
       <div class="dark-box">
           <div class="lang-selector">
-                <a href="#" data-language-name="shell">shell</a>
-                <a href="#" data-language-name="ruby">ruby</a>
-                <a href="#" data-language-name="python">python</a>
           </div>
       </div>
     </div>
