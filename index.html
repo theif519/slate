@@ -376,50 +376,92 @@ If done correctly, it can become a very useful utility for managing shared data 
 <p>Another note to mention is that the thread pool showcases the use of MU_Events, as waiting on a result is an event, so is to pause and resume.</p>
 
 <h2 id="scoped-locks">Scoped Locks</h2>
-<pre class="highlight c"><code>
-<span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
 
-<span class="cm">/*
-    Allocation
-*/</span>
-<span class="c1">// If we want a spinlock?
-</span><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">lock_1</span> <span class="o">=</span> <span class="n">scoped_lock_spinlock</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
-<span class="c1">// What if we want to create one from an already existing lock?
-</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">lock</span><span class="p">;</span>
-<span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">lock_2</span> <span class="o">=</span> <span class="n">SCOPED_LOCK_FROM</span><span class="p">(</span><span class="n">lock</span><span class="p">);</span>
-<span class="c1">// What if we do not want a lock at times?
-</span><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">lock_3</span> <span class="o">=</span> <span class="n">scoped_lock_no_op</span><span class="p">();</span>
+<blockquote>
+<p>Scoped Spinlock</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">scoped_lock_conf_t</span> <span class="n">conf</span> <span class="o">=</span> 
+<span class="p">{</span>
+  <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">my_logger</span><span class="p">,</span>
+  <span class="p">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">SCOPED_LOCK_RC_INSTANCE</span>
+<span class="p">};</span>
 
-<span class="cm">/*
-    Scoped Locking
-*/</span>
-<span class="c1">// Regardless of type, it will work the same.
-</span><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">s_lock</span><span class="p">;</span>
-
-<span class="c1">// Single-line
-</span><span class="n">SCOPED_LOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">)</span>
-    <span class="n">do_something</span><span class="p">();</span>
-
-<span class="c1">// Multi-line
-</span><span class="n">SCOPED_LOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">do_something</span><span class="p">();</span>
-    <span class="n">do_something_else</span><span class="p">();</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">is_something</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// Note, we return without needing to unlock.
-</span>        <span class="k">return</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">finally_do_something</span><span class="p">();</span>
-<span class="p">}</span>
-
-<span class="cm">/*
-    Sometimes the compilers throws a warning (or error) because you return inside of the scoped_lock block. This can be mitigated with the C_UTILS_UNACCESSEIBLE macro.
-*/</span>
-
-<span class="n">C_UTILS_UNACCESSIBLE</span><span class="p">;</span>
-
+<span class="kt">int</span> <span class="n">spinlock_flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">s_lock</span> <span class="o">=</span> <span class="n">scoped_lock_spinlock_conf</span><span class="p">(</span><span class="n">spinlock_flags</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
 </code></pre>
 
-<p>An implementation of a C++-like scope_lock. The premise is that locks should be managed on it&rsquo;s own, and is finally made possible using GCC and Clang&rsquo;s compiler attributes, <strong>cleanup</strong>. The locks supported so far are pthread_mutex_t, pthread_spinlock_t, and sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts the need for the need to lock/unlock the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.</p>
+<blockquote>
+<p>Scoped Reader-Writer Lock</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">pthread_rwlockattr_t</span> <span class="o">*</span><span class="n">attr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">s_lock</span> <span class="o">=</span> <span class="n">scoped_lock_rwlock_conf</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Scoped Lock Generic Creation</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// Initialized lock
+</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">lock</span><span class="p">;</span>
+<span class="c1">// Uses mutex lock.
+</span><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">s_lock</span> <span class="o">=</span> <span class="n">SCOPED_LOCK_FROM_CONF</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Don&rsquo;t need a lock at times? We have you covered!</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">scoped_lock_t</span> <span class="o">*</span><span class="n">s_lock</span> <span class="o">=</span> <span class="n">scoped_lock_no_op</span><span class="p">();</span>
+</code></pre>
+
+<blockquote>
+<p>Automatic acquire and release of lock.</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">SCOPED_LOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">do_something</span><span class="p">();</span>
+  <span class="n">do_something_else</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">is_something</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// Note, we return without needing to unlock.
+</span>      <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">finally_do_something</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre>
+
+<blockquote>
+<p>Even for one-liners</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">SCOPED_LOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">)</span>
+  <span class="n">do_something_cool</span><span class="p">();</span>
+</code></pre>
+
+<blockquote>
+<p>Specifically for Reader-Writer locks</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">SCOPED_WRLOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">);</span>
+
+<span class="n">SCOPED_RDLOCK</span><span class="p">(</span><span class="n">s_lock</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>For that nagging compiler warning</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">C_UTILS_UNACCESSIBLE</span><span class="p">;</span>
+</code></pre>
+
+<p>An implementation of a C++-like scope_lock. The premise is that locks should be managed on it&rsquo;s own, and is finally made possible using GCC and Clang&rsquo;s compiler attributes, <strong>cleanup</strong>. The locks supported so far are <code class="prettyprint">pthread_mutex_t</code>, <code class="prettyprint">pthread_spinlock_t</code>, <code class="prettyprint">pthread_rwlock_t</code>, and soon sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts and relaxes the acquire/release semantics for the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.</p>
+
+<p>Lastly, another key feature to it being type-agnostic is that you can effortlessly change the underlying lock from a mutex, to a spinlock, to a semaphore and keep the code (and critical sections) the same. Of course, you can also disable locking if you specifically want to remove synchronization as well.</p>
+
+<aside class='warning'>
+The underlying lock must support secondary locking, I.E Reader-Writer lock, to use SCOPED_RDLOCK. Hence, if you attempt to invoke it with a mutex, it will throw an assertion and abort.
+</aside>
+
+<aside class='notice'>
+Since it is possible to always return inside of a for loop, and the for loop will ALWAYS execute the block, the compiler does not know this. Therefore, it will complain about not returning after a scoped block. The official way to do this is to use the C_UTILS_UNACCESSIBLE macro.
+</aside>
+
+<aside class='success'>
+If used correctly, it can be an invaluable tool for writing newer multi-threaded code. The type agnosticism easily allows you to switch out locks even at runtime with no effort, or even disable locks altogether.
+</aside>
 
 <h2 id="conditional-locks">Conditional Locks</h2>
 <pre class="highlight c"><code>
