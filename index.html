@@ -110,85 +110,84 @@
       <div class="content">
         <h1 id="introduction">Introduction</h1>
 
-<p>Utilities Package for the C Programming Language, dubbed C_Utils, contains a plethora of varying, but very useful abstractions for the modern day C programmer. It is designed to be easy to use and easy to read, and very newbie-friendly. As the C standard library is extremely minimal, I decided to create my own abstractions and package them to share them with others who may desire to use them. </p>
-
-<p>This project originally began as a way to teach myself the C Programming language, and so I am mainly self-taught. This may lead to some &ldquo;weird&rdquo; semantics and style choices, however this has been remedied as of March of 2016, by redesigning the entire library, to increase readability and overall control flow.</p>
-
-<p>As of now, this project will be continued to be worked on and expanded on as I desire to learn new things. The amount of time spent developing this package has bordered on 800 hours now, and I do not think I&rsquo;ll ever be truly finished, as there are nearly infinitely many amount of things I can do. </p>
-
-<p>It should be noted once again, while this project is my &ldquo;personal playground&rdquo; does not mean it will be unusable to others.</p>
+<p>Welcome to C_Utils, the Utilities Package for the C Programming Language. Below you will find what the package has to offer, and see just how configurable and versatile it really is.</p>
 
 <h1 id="notes">Notes</h1>
 
 <h2 id="development-stages">Development Stages</h2>
 
-<p>[<b>Unimplemented</b>] - I have not begun to implement this yet, but I do plan on doing so at a later date.</p>
+<p>[<b>Unimplemented</b>] - Planned to be implemented at a later date.</p>
 
-<p>[<b>In Development</b>] - I am currently working on the implementation of this, and I should be finished soon.</p>
+<p>[<b>In Development</b>] - Work in progress.</p>
 
-<p>[<b>Unstable</b>] - I have finished developing this, and have done minor testing, but have not done enough to determine if it is bug-free yet.</p>
+<p>[<b>Unstable</b>] - Mostly implemented, but not fully tested.</p>
 
-<p>[<b>Stable</b>] - I have finished developing this, and have done repeated tests to ensure it&rsquo;s stability, however I may add some more features later on at my leisure.</p>
+<p>[<b>Stable</b>] - Fully implemented and fully tested, usable unless a new feature is added or a bug is found.</p>
 
-<p>[<b>Finished</b>] - I have finished developing this, and have done repeated tests to ensure it&rsquo;s stability, and I do not plan on adding anything more than bug-fixes in the future.</p>
-
-<h2 id="stable-vs-development-branches">Stable vs Development Branches</h2>
-
-<p>Just to get this out of the way early in the README, as of yet, C_Utils has gone through a MAJOR refactoring, and even now as I write this it is not finished, and hence the stable version does NOT accurately reflect the code samples, or even the libraries within this package. Hence, I urge that, if not already, see https://github.com/theif519/C_Utils/tree/development. </p>
+<p>[<b>Finished</b>] - Stable and production-ready, and much less likely to change (except for occasional bug fixes)</p>
 
 <h2 id="artificial-namespace-patterns">Artificial Namespace patterns</h2>
 
 <blockquote>
-<p>With the prefix&hellip;</p>
+<p>With the namespace prefix&hellip;</p>
 </blockquote>
-<pre class="highlight c"><code>
-<span class="k">struct</span> <span class="n">c_utils_logger</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+<pre class="highlight c"><code><span class="k">struct</span> <span class="n">c_utils_logger</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
 <span class="n">C_UTILS_LOGGER_AUTO_CREATE</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="p">...);</span>
 
 <span class="k">struct</span> <span class="n">c_utils_thread_pool</span> <span class="o">*</span><span class="n">pool</span> <span class="o">=</span> <span class="n">c_utils_thread_pool_create</span><span class="p">(...);</span>
-
 </code></pre>
 
 <blockquote>
-<p>Without the prefix&hellip;</p>
+<p>Without the namespace prefix&hellip;</p>
 </blockquote>
-<pre class="highlight c"><code>
-<span class="cp">#define NO_C_UTILS_PREFIX
-#include &lt;logger.h&gt;
-#include &lt;thread_pool.h&gt;
-</span>
-<span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
+<pre class="highlight c"><code><span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
 <span class="n">LOGGER_AUTO_CREATE</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="p">...);</span>
 
 <span class="n">thread_pool_t</span> <span class="o">*</span><span class="n">pool</span> <span class="o">=</span> <span class="n">thread_pool_create</span><span class="p">(...);</span>
-
 </code></pre>
+
+<blockquote>
+<p>How to disable the prefix&hellip;</p>
+</blockquote>
+<pre class="highlight c"><code><span class="cp">#define NO_C_UTILS_PREFIX
+#include &lt;logger.h&gt;
+#include &lt;thread_pool.h&gt;
+</span></code></pre>
 
 <p>To avoid the issue of namespace collision, as C has only one namespace, all libraries in this package contain the C_UTILS_ prefix for macros, and c_utils_ prefix for functions and structs. Now, this can look rather ugly. For example&hellip;</p>
 
-<p>There&rsquo;s no dodging around it, the c_utils_ prefix makes everything more long-winded. However, this is necessary when writing libraries like these. While it may be unwieldy, maybe you think you don&rsquo;t have to worry about collisions for  a logger or a thread_pool because no other library you use has them. This is where the NO_C_UTILS_NO_PREFIX define comes in. If you define this before importing the libraries, it will strip the c_utils prefix through macro defines, typedef most (99%) of the library the name, ended with a &ldquo;_t&rdquo;. For example&hellip;</p>
+<p>There&rsquo;s no dodging around it, the c_utils_ prefix makes everything more long-winded. However, this is necessary when writing libraries like these. While it may be unwieldy, maybe you think you don&rsquo;t have to worry about collisions for  a logger or a thread_pool because no other library you use has them. This is where the <code class="prettyprint">NO_C_UTILS_NO_PREFIX</code> define comes in. If you define this before importing the libraries, it will strip the c_utils prefix through macro defines, typedef most (99%) of the library the name, ended with a &ldquo;_t&rdquo;. For example&hellip;</p>
 
-<p>Now it is a LOT less long-winded, and much more elegant looking. This trade off adds the issue of potential collision, so be warned. Because of this conciseness, all below code samples use the NO_C_UTILS_PREFIX, and so contain no c_utils_ prefix. </p>
+<p>Now it is a LOT less long-winded, and much more elegant looking. This trade off adds the issue of potential collision, so be warned. Because of this conciseness, all below code samples use the <code class="prettyprint">NO_C_UTILS_PREFIX</code>, and so contain no c_utils_ prefix. </p>
 
-<h2 id="lifetime-management">Lifetime Management</h2>
-
-<p>All objects returned from this library can optionally be reference counted. This will work using the lock-free allocator wrapper provided in memory/ref_count.h, to allocate the structure using it. This drastically eases the usage and management the libraries in this package.</p>
+<aside class="warning"> 
+You MUST place it before the inclusion of the package
+</aside>
 
 <h2 id="configurations">Configurations</h2>
-<pre class="highlight c"><code>
-<span class="cm">/*
-    The below elegantly demonstrates the importance of the configuration 
-    object. As can be seen, the object allows an almost JSON-like appearence to
-    configuring the specifics of the structure. This allows an fine-tuned 
-    data structure to fit the needs of the user. Unlike preprocessor macros,
-    these are evaluated at run-time, meaning you can have different configured
-    objects of the same type (which with preprocessor #define blocks would
-    only allow one). This comes with the trade-off of more memory for each,
-    as the underlying data structure must keep track of each field 
-    independently. 
-*/</span>
 
-<span class="n">map_conf_t</span> <span class="n">conf</span> <span class="o">=</span>
+<blockquote>
+<p>Creating a map with defaults</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">map_t</span> <span class="o">*</span><span class="n">map</span> <span class="o">=</span> <span class="n">map_create</span><span class="p">();</span>
+</code></pre>
+
+<blockquote>
+<p>Creating a map with little configuration changes</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">map_conf_t</span> <span class="n">conf</span> <span class="o">=</span>
+<span class="p">{</span>
+    <span class="p">.</span><span class="n">obj_len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">my_obj</span><span class="p">),</span>
+    <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">my_logger</span>
+<span class="p">};</span>
+
+<span class="n">map_t</span> <span class="o">*</span><span class="n">map</span> <span class="o">=</span> <span class="n">map_create_conf</span><span class="p">(</span><span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Creating a map with highly-specified functionality</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">map_conf_t</span> <span class="n">conf</span> <span class="o">=</span>
 <span class="p">{</span>
     <span class="p">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">MAP_CONCURRENT</span> <span class="o">|</span> <span class="n">MAP_RC_INSTANCE</span> <span class="o">|</span> <span class="n">MAP_SHRINK_ON_TRIGGER</span> <span class="o">|</span> <span class="n">MAP_DELETE_ON_DESTROY</span><span class="p">,</span>
     <span class="p">.</span><span class="n">num_buckets</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
@@ -216,45 +215,152 @@
     <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">my_logger</span>
 <span class="p">};</span>
 
+<span class="n">map_t</span> <span class="o">*</span><span class="n">map</span> <span class="o">=</span> <span class="n">map_create_conf</span><span class="p">(</span><span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
 </code></pre>
 
-<p>Recently, I found that just adding extra parameters won&rsquo;t fit the bill any longer, and so I decided to begin to rewrite everything again, implementing a new way to creating an object, whether that be a list, a thead_pool, or an event.</p>
+<p>As this library aims to be completely configurable, adding more and more parameters will no longer do the job. One can see that if an object can have a hundred different uses, having a hundred different parameters, especially when not even needed, can be impractical and cumbersome.</p>
 
-<p>This new way is simulator to the Configuration Object pattern, or well, it pretty much is. The configuration object will allow the user to fine-tune the objects during construction, such as assigning it a specific logger to log to (so no more logging to about 30 different files), if it should be synchronized (so no extra boolean parameter in every constructor), and other context-specific options. Each will also have its own default behavior, allowing for shorter and easier construction.</p>
+<p>The way the library conquers this is by allowing each object to be created with a configuration object. For example &lsquo;map_t&rsquo; has a configuration object called &#39;map_conf_t&rsquo;. This allows the fine-tunement of any given object when asked for, supplying it&rsquo;s own defaults when needed.</p>
+
+<aside class="notice">
+Some defaults are not optimal with all configurations. Sometimes if you specify one configuration, you should also specify another as well to get the behavior you want.
+</aside>
+
+<h2 id="lifetime-management">Lifetime Management</h2>
+
+<blockquote>
+<p>Create reference counted priority queue for producer-consumer relationship.</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">blocking_queue_conf_t</span> <span class="n">conf</span> <span class="o">=</span> <span class="p">{</span> <span class="p">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">BLOCKING_QUEUE_RC_INSTANCE</span> <span class="p">};</span>
+<span class="n">blocking_queue_t</span> <span class="o">*</span><span class="n">pq</span> <span class="o">=</span> <span class="n">priority_queue_create_conf</span><span class="p">(</span><span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Reference count is now 0. Assume that we continue filling up the blocking queue with items as the producer, while the consumer consumes those items. Now, normally this would be tricky, as we have to consider who frees the queue first, and what if we have multiple producers and consumers? We would then have to join and wait until all threads finish, complicating things. Instead, we can do this&hellip;</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">REF_INC</span><span class="p">(</span><span class="n">queue</span><span class="p">);</span>
+<span class="n">pass_data_to_consumer</span><span class="p">(</span><span class="n">queue</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>We must increment the count BEFORE passing it to the consumer to prevent any race conditions where we decrement our count before they get to increment their own. Now when either is finished&hellip;</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">REF_DEC</span><span class="p">(</span><span class="n">queue</span><span class="p">);</span>
+<span class="c1">// Or...
+</span><span class="n">blocking_queue_destroy</span><span class="p">(</span><span class="n">queue</span><span class="p">);</span>
+</code></pre>
+
+<p>Almost all objects returned from this library have some kind of reference counting built in to allow for easier management. This is, of course optional, as it is configurable (see next section). Enabling reference counting allows for other objects of the library to also maintain references to it while. In the end, if the reference counts are managed correctly, it can easily prevent memory leaks and become as easy to manage as a garbage collected language. </p>
+
+<p>To this end, if reference counting is enabled for an object, you use the helper macro <code class="prettyprint">REF_DEC</code> instead of it&rsquo;s normal destructor to allow generic destruction of reference counted data, and the other helper macro <code class="prettyprint">REF_INC</code> to increment the count.</p>
+
+<aside class="warning">
+The data passed to REF_DEC and REF_INC MUST have been created with the ref_create function, and it is impossible to reference count an object after it&rsquo;s creation through a normal malloc or calloc call. Note as well, you should NEVER free the data itself, just call REF_DEC when finished.
+</aside>
+
+<aside class="success">
+If done correctly, it can become a very useful utility for managing shared data between different threads or even different objects in general.
+</aside>
 
 <h1 id="threading">Threading</h1>
 
-<p>Provides utilities, abstractions and tools which help automate/manage multithreading,</p>
+<table><thead>
+<tr>
+<th style="text-align: left">Library</th>
+<th style="text-align: center">Version</th>
+<th style="text-align: right">Status</th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">Thread Pool</td>
+<td style="text-align: center">1.3</td>
+<td style="text-align: right">Stable</td>
+</tr>
+<tr>
+<td style="text-align: left">Scoped Lock</td>
+<td style="text-align: center">0.75</td>
+<td style="text-align: right">Unstable</td>
+</tr>
+<tr>
+<td style="text-align: left">Conditional Locks</td>
+<td style="text-align: center">1.0</td>
+<td style="text-align: right">Stable</td>
+</tr>
+<tr>
+<td style="text-align: left">Events</td>
+<td style="text-align: center">1.2</td>
+<td style="text-align: right">Stable</td>
+</tr>
+<tr>
+<td style="text-align: left">Event Loop</td>
+<td style="text-align: center">0.6</td>
+<td style="text-align: right">DEPRECATED</td>
+</tr>
+</tbody></table>
 
-<h2 id="thread-pool-stable-version-1-3">Thread Pool [<b>Stable</b>] Version: 1.3</h2>
-<pre class="highlight c"><code>
-<span class="c1">/// Initialize a pool of 10 threads, enough to handle anything without wasting resources.
-</span><span class="k">static</span> <span class="k">const</span> <span class="kt">size_t</span> <span class="n">pool_size</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<h2 id="thread-pool">Thread Pool</h2>
 
-<span class="c1">/// Example task for thread pool to run.
+<blockquote>
+<p>Thread pool task</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// Any function with the same return type and argument (void *) will work.
 </span><span class="k">static</span> <span class="kt">void</span> <span class="o">*</span><span class="n">task_example</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">args</span><span class="p">);</span>
+</code></pre>
 
-<span class="n">thread_pool_t</span> <span class="o">*</span><span class="n">tp</span> <span class="o">=</span> <span class="n">thread_pool_create</span><span class="p">(</span><span class="n">pool_size</span><span class="p">);</span>
+<blockquote>
+<p>Creating the thread pool with default arguments</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">thread_pool_t</span> <span class="o">*</span><span class="n">tp</span> <span class="o">=</span> <span class="n">thread_pool_create</span><span class="p">();</span>
+</code></pre>
 
-<span class="c1">/// Adds a task of medium priority (default), with no argument (NULL) nor flags (0)
-</span><span class="n">result_t</span> <span class="o">*</span><span class="n">result</span> <span class="o">=</span> <span class="n">thread_pool_add</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">task_example</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-<span class="c1">/// Adds the same task of high priority, no argument, and without a result.
-</span><span class="n">thread_pool_add</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">task_example</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">THIGH_PRIORITY</span> <span class="o">|</span> <span class="n">NO_RESULT</span><span class="p">);</span>
-<span class="c1">/// Note that you do not need to worry about cleaning up the result from TP_NO_RESULT.
-</span>
-<span class="c1">/// Wait on result with no timeout (-1).
-</span><span class="kt">void</span> <span class="o">*</span><span class="n">retval</span> <span class="o">=</span> <span class="n">result_get</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
-<span class="c1">/// Destroy the result, as it no longer is needed.
-</span><span class="n">result_destroy</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+<blockquote>
+<p>Creating the thread pool with configuration object</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">thread_pool_conf_t</span> <span class="n">conf</span> <span class="o">=</span> 
+<span class="p">{</span>
+    <span class="p">.</span><span class="n">pool_size</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">my_logger</span>
+<span class="p">};</span>
 
-<span class="c1">/// Pause the thread pool for 5 seconds.
-</span><span class="n">thread_pool_pause</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
-<span class="c1">/// Wait on Thread Pool to finish everything.
-</span><span class="n">thread_pool_wait</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">thread_pool_t</span> <span class="o">*</span><span class="n">tp</span> <span class="o">=</span> <span class="n">thread_pool_create_conf</span><span class="p">(</span><span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
 
-<span class="c1">/// Destroy thread pool.
-</span><span class="n">thread_pool_destroy</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
+<blockquote>
+<p>Adding a task with an asynchronous result, then retreiving said result</p>
+</blockquote>
+<pre class="highlight c"><code><span class="kt">int</span> <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="kt">void</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="n">result_t</span> <span class="o">*</span><span class="n">result</span> <span class="o">=</span> <span class="n">thread_pool_add</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">task_example</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>
 
+<span class="c1">// -1 = no timeout, wait until task finishes.
+</span><span class="kt">long</span> <span class="n">timeout</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="kt">void</span> <span class="o">*</span><span class="n">retval</span> <span class="o">=</span> <span class="n">result_get</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">timeout</span><span class="p">);</span>
+<span class="n">result_destroy</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Adding task with no result, with a different priority</p>
+</blockquote>
+<pre class="highlight c"><code><span class="kt">int</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">NO_RESULT</span> <span class="o">|</span> <span class="n">HIGH_PRIORITY</span><span class="p">;</span>
+<span class="kt">void</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="n">thread_pool_add</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">task_example</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Pause the thread pool</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// 5 Seconds.
+</span><span class="kt">long</span> <span class="n">timeout</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">;</span>
+<span class="n">thread_pool_pause</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">timeout</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Wait for it to finish and then destroy it</p>
+</blockquote>
+<pre class="highlight c"><code><span class="kt">long</span> <span class="n">timeout</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="n">thread_pool_wait</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">timeout</span><span class="p">);</span>
+
+<span class="n">thread_pool_destroy</span><span class="p">(</span><span class="n">tp</span><span class="p">);</span>
 </code></pre>
 
 <p>thread_pool_t is a thread pool with it&rsquo;s own priority queue for tasks. As implied by the use of a priority queue, tasks may be submitted via 6 different priorities, Lowest, Low, Medium, High and Highest. High Priority tasks would jump ahead of tasks of Low priority, intuitively. </p>
@@ -269,7 +375,7 @@
 
 <p>Another note to mention is that the thread pool showcases the use of MU_Events, as waiting on a result is an event, so is to pause and resume.</p>
 
-<h2 id="scoped-locks-in-development-version-0-5">Scoped Locks [<b>In Development</b>] Version: 0.5</h2>
+<h2 id="scoped-locks">Scoped Locks</h2>
 <pre class="highlight c"><code>
 <span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">logger</span><span class="p">;</span>
 
@@ -315,7 +421,7 @@
 
 <p>An implementation of a C++-like scope_lock. The premise is that locks should be managed on it&rsquo;s own, and is finally made possible using GCC and Clang&rsquo;s compiler attributes, <strong>cleanup</strong>. The locks supported so far are pthread_mutex_t, pthread_spinlock_t, and sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts the need for the need to lock/unlock the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.</p>
 
-<h2 id="conditional-locks-stable-version-1-0">Conditional Locks [<b>Stable</b>] Version: 1.0</h2>
+<h2 id="conditional-locks">Conditional Locks</h2>
 <pre class="highlight c"><code>
 <span class="c1">/// Assume this gets initialized before being called.
 </span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">lock</span><span class="p">;</span>
@@ -330,7 +436,7 @@
 
 <p>Now imagine you have a data structure that uses rwlocks, or even mutexes. Now, the overhead of a mutex, no matter how optimized they are, is still unneeded on single threaded applications for said data structure. Hence, if lock is NULL it will result in a NOP, and do nothing. The compiler may even optimize away the check entirely and act like it&rsquo;s not there, who knows. The point being that it allows for more flexible data structures which can&rsquo;t be made lockless.</p>
 
-<h2 id="events-stable-version-1-2">Events [<b>Stable</b>] Version: 1.2</h2>
+<h2 id="events">Events</h2>
 <pre class="highlight c"><code>
 <span class="c1">/// Logger for events. Assume it gets initialized and setup before calling events.
 </span><span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">event_logger</span><span class="p">;</span>
@@ -360,7 +466,7 @@
 
 <p>events is an abstraction on top of a pthread_mutex, pthread_cond variable, and other flags. MU_Events are entirely thread safe and efficient, and also entirely flexible, coming with it&rsquo;s own MU_Logger support. You can also name events and pass the thread identifier to allow debugging said events easier.</p>
 
-<h2 id="event-loop-unstable-version-0-6">Event Loop [<b>Unstable</b>] Version 0.6</h2>
+<h2 id="event-loop">Event Loop</h2>
 <pre class="highlight c"><code>
 <span class="kt">void</span> <span class="o">*</span><span class="nf">prepare_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">return</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">some_event_t</span><span class="p">));</span>
