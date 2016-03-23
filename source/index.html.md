@@ -1,85 +1,96 @@
 # Introduction
 
-Utilities Package for the C Programming Language, dubbed C_Utils, contains a plethora of varying, but very useful abstractions for the modern day C programmer. It is designed to be easy to use and easy to read, and very newbie-friendly. As the C standard library is extremely minimal, I decided to create my own abstractions and package them to share them with others who may desire to use them. 
-
-This project originally began as a way to teach myself the C Programming language, and so I am mainly self-taught. This may lead to some "weird" semantics and style choices, however this has been remedied as of March of 2016, by redesigning the entire library, to increase readability and overall control flow.
-
-As of now, this project will be continued to be worked on and expanded on as I desire to learn new things. The amount of time spent developing this package has bordered on 800 hours now, and I do not think I'll ever be truly finished, as there are nearly infinitely many amount of things I can do. 
-
-It should be noted once again, while this project is my "personal playground" does not mean it will be unusable to others.
+Welcome to C_Utils, the Utilities Package for the C Programming Language. Below you will find what the package has to offer, and see just how configurable and versatile it really is.
 
 #Notes
 
 ##Development Stages
 
-[<b>Unimplemented</b>] - I have not begun to implement this yet, but I do plan on doing so at a later date.
+[<b>Unimplemented</b>] - Planned to be implemented at a later date.
 
-[<b>In Development</b>] - I am currently working on the implementation of this, and I should be finished soon.
+[<b>In Development</b>] - Work in progress.
 
-[<b>Unstable</b>] - I have finished developing this, and have done minor testing, but have not done enough to determine if it is bug-free yet.
+[<b>Unstable</b>] - Mostly implemented, but not fully tested.
 
-[<b>Stable</b>] - I have finished developing this, and have done repeated tests to ensure it's stability, however I may add some more features later on at my leisure.
+[<b>Stable</b>] - Fully implemented and fully tested, usable unless a new feature is added or a bug is found.
 
-[<b>Finished</b>] - I have finished developing this, and have done repeated tests to ensure it's stability, and I do not plan on adding anything more than bug-fixes in the future.
-
-##Stable vs Development Branches
-
-Just to get this out of the way early in the README, as of yet, C_Utils has gone through a MAJOR refactoring, and even now as I write this it is not finished, and hence the stable version does NOT accurately reflect the code samples, or even the libraries within this package. Hence, I urge that, if not already, see https://github.com/theif519/C_Utils/tree/development. 
+[<b>Finished</b>] - Stable and production-ready, and much less likely to change (except for occasional bug fixes)
 
 ##Artificial Namespace patterns
 
->With the prefix...
+>With the namespace prefix...
 
 ~~~c
-
 struct c_utils_logger *logger;
 C_UTILS_LOGGER_AUTO_CREATE(logger, ...);
 
 struct c_utils_thread_pool *pool = c_utils_thread_pool_create(...);
-
 ~~~
 
->Without the prefix...
+>Without the namespace prefix...
 
 ~~~c
-
-#define NO_C_UTILS_PREFIX
-#include <logger.h>
-#include <thread_pool.h>
-
 logger_t *logger;
 LOGGER_AUTO_CREATE(logger, ...);
 
 thread_pool_t *pool = thread_pool_create(...);
-
 ~~~
+
+>How to disable the prefix...
+
+~~~c
+#define NO_C_UTILS_PREFIX
+#include <logger.h>
+#include <thread_pool.h>
+~~~
+
+<aside class="warning"> 
+>You MUST place it before the inclusion of the package
+</aside>
 
 To avoid the issue of namespace collision, as C has only one namespace, all libraries in this package contain the C_UTILS_ prefix for macros, and c_utils_ prefix for functions and structs. Now, this can look rather ugly. For example...
 
-There's no dodging around it, the c_utils_ prefix makes everything more long-winded. However, this is necessary when writing libraries like these. While it may be unwieldy, maybe you think you don't have to worry about collisions for  a logger or a thread_pool because no other library you use has them. This is where the NO_C_UTILS_NO_PREFIX define comes in. If you define this before importing the libraries, it will strip the c_utils prefix through macro defines, typedef most (99%) of the library the name, ended with a "_t". For example...
+There's no dodging around it, the c_utils_ prefix makes everything more long-winded. However, this is necessary when writing libraries like these. While it may be unwieldy, maybe you think you don't have to worry about collisions for  a logger or a thread_pool because no other library you use has them. This is where the 'NO_C_UTILS_NO_PREFIX' define comes in. If you define this before importing the libraries, it will strip the c_utils prefix through macro defines, typedef most (99%) of the library the name, ended with a "_t". For example...
 
-Now it is a LOT less long-winded, and much more elegant looking. This trade off adds the issue of potential collision, so be warned. Because of this conciseness, all below code samples use the NO_C_UTILS_PREFIX, and so contain no c_utils_ prefix. 
+Now it is a LOT less long-winded, and much more elegant looking. This trade off adds the issue of potential collision, so be warned. Because of this conciseness, all below code samples use the 'NO_C_UTILS_PREFIX', and so contain no c_utils_ prefix. 
 
 ##Lifetime Management
 
-All objects returned from this library can optionally be reference counted. This will work using the lock-free allocator wrapper provided in memory/ref_count.h, to allocate the structure using it. This drastically eases the usage and management the libraries in this package.
+Almost all objects returned from this library have some kind of reference counting built in to allow for easier management. This is, of course optional, as it is configurable (see next section). Enabling reference counting allows for other objects of the library to also maintain references to it while. In the end, if the reference counts are managed correctly, it can easily prevent memory leaks and become as easy to manage as a garbage collected language. 
+
+To this end, if reference counting is enabled for an object, you use the helper macros 'REF_DEC' instead of it's normal destructor to allow generic destruction of reference counted data, and 'REF_INC' to increment the count.
+
+<aside class="warning">
+The data passed to 'REF_DEC' and 'REF_INC' MUST have been created with the 'ref_create' function, and it is impossible to reference count an object after it's creation through a normal 'malloc' or 'calloc' call. Note as well, you should NEVER 'free' the data itself, just call 'REF_DEC' when finished.
+</aside>
+
+<aside class="success">
+If done correctly, it can become a very useful utility for managing shared data between different threads or even different objects in general.
+</aside>
 
 ##Configurations
 
+>Creating a map with defaults
+
 ~~~c
+map_t *map = map_create();
+~~~
 
-/*
-    The below elegantly demonstrates the importance of the configuration 
-    object. As can be seen, the object allows an almost JSON-like appearence to
-    configuring the specifics of the structure. This allows an fine-tuned 
-    data structure to fit the needs of the user. Unlike preprocessor macros,
-    these are evaluated at run-time, meaning you can have different configured
-    objects of the same type (which with preprocessor #define blocks would
-    only allow one). This comes with the trade-off of more memory for each,
-    as the underlying data structure must keep track of each field 
-    independently. 
-*/
+>Creating a map with little configuration changes
 
+~~~c
+map_conf_t conf =
+{
+    .obj_len = sizeof(struct my_obj),
+    .logger = my_logger
+};
+
+map_t *map = map_create_conf(&conf);
+~~~
+
+>Creating a map with highly-specified functionality
+
+~~~c
 map_conf_t conf =
 {
     .flags = MAP_CONCURRENT | MAP_RC_INSTANCE | MAP_SHRINK_ON_TRIGGER | MAP_DELETE_ON_DESTROY,
@@ -108,48 +119,91 @@ map_conf_t conf =
     .logger = my_logger
 };
 
+map_t *map = map_create_conf(&conf);
 ~~~
 
-Recently, I found that just adding extra parameters won't fit the bill any longer, and so I decided to begin to rewrite everything again, implementing a new way to creating an object, whether that be a list, a thead_pool, or an event.
+<aside class="notice">
+Some defaults are not optimal with all configurations. Sometimes if you specify one configuration, you should also specify another as well to get the behavior you want.
+</aside>
 
-This new way is simulator to the Configuration Object pattern, or well, it pretty much is. The configuration object will allow the user to fine-tune the objects during construction, such as assigning it a specific logger to log to (so no more logging to about 30 different files), if it should be synchronized (so no extra boolean parameter in every constructor), and other context-specific options. Each will also have its own default behavior, allowing for shorter and easier construction.
+As this library aims to be completely configurable, adding more and more parameters will no longer do the job. One can see that if an object can have a hundred different uses, having a hundred different parameters, especially when not even needed, can be impractical and cumbersome.
+
+The way the library conquers this is by allowing each object to be created with a configuration object. For example 'map_t' has a configuration object called 'map_conf_t'. This allows the fine-tunement of any given object when asked for, supplying it's own defaults when needed.
 
 #Threading
 
-Provides utilities, abstractions and tools which help automate/manage multithreading,
+Library | Version | Status
+------- | ------- | ------
+Thread Pool | 1.3 | Stable
+Scoped Lock | 0.75 | Unstable
+Conditional Locks | 1.0 | Stable
+Events | 1.2 | Stable
+Event Loop | 0.6 | DEPRECATED
 
-## Thread Pool [<b>Stable</b>] Version: 1.3
 
-```c
+## Thread Pool
+>Thread pool task
 
-/// Initialize a pool of 10 threads, enough to handle anything without wasting resources.
-static const size_t pool_size = 10;
-
-/// Example task for thread pool to run.
+~~~c
+// Any function with the same return type and argument (void *) will work.
 static void *task_example(void *args);
+~~~
 
-thread_pool_t *tp = thread_pool_create(pool_size);
+>Creating the thread pool with default arguments
 
-/// Adds a task of medium priority (default), with no argument (NULL) nor flags (0)
-result_t *result = thread_pool_add(tp, task_example, NULL, 0);
-/// Adds the same task of high priority, no argument, and without a result.
-thread_pool_add(tp, task_example, NULL, THIGH_PRIORITY | NO_RESULT);
-/// Note that you do not need to worry about cleaning up the result from TP_NO_RESULT.
+~~~c
+thread_pool_t *tp = thread_pool_create();
+~~~
 
-/// Wait on result with no timeout (-1).
+>Creating the thread pool with configuration object
+
+~~~c
+thread_pool_conf_t conf = 
+{
+    .pool_size = 4,
+    .logger = my_logger
+};
+
+thread_pool_t *tp = thread_pool_create_conf(&conf);
+~~~
+
+>Adding a task with an asynchronous result, then retreiving said result
+
+~~~c
+int flags = 0;
+void *args = NULL;
+result_t *result = thread_pool_add(tp, task_example, args, flags);
+
+// -1 = no timeout, wait until task finishes.
+long timeout = -1;
 void *retval = result_get(result, -1);
-/// Destroy the result, as it no longer is needed.
 result_destroy(result);
+~~~
 
-/// Pause the thread pool for 5 seconds.
-thread_pool_pause(tp, 5);
-/// Wait on Thread Pool to finish everything.
+>Adding task with no result, with a different priority
+
+~~~c
+int flags = NO_RESULT | HIGH_PRIORITY;
+void *args = NULL;
+thread_pool_add(tp, task_example, args, flags);
+~~~
+
+>Pause the thread pool
+
+~~~c
+// 5 Seconds.
+long timeout = 5000;
+thread_pool_pause(tp, timeout);
+~~~
+
+>Wait for it to finish and then destroy it
+
+~~~c
+long timeout = -1;
 thread_pool_wait(tp, -1);
 
-/// Destroy thread pool.
 thread_pool_destroy(tp);
-
-```
+~~~
 
 thread_pool_t is a thread pool with it's own priority queue for tasks. As implied by the use of a priority queue, tasks may be submitted via 6 different priorities, Lowest, Low, Medium, High and Highest. High Priority tasks would jump ahead of tasks of Low priority, intuitively. 
 
@@ -163,7 +217,7 @@ Finally you can pause the thread pool, meaning, that currently running tasks fin
 
 Another note to mention is that the thread pool showcases the use of MU_Events, as waiting on a result is an event, so is to pause and resume.
 
-##Scoped Locks [<b>In Development</b>] Version: 0.5
+##Scoped Locks
 
 ```c
 
@@ -211,7 +265,7 @@ C_UTILS_UNACCESSIBLE;
 
 An implementation of a C++-like scope_lock. The premise is that locks should be managed on it's own, and is finally made possible using GCC and Clang's compiler attributes, __cleanup__. The locks supported so far are pthread_mutex_t, pthread_spinlock_t, and sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts the need for the need to lock/unlock the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.
 
-##Conditional Locks [<b>Stable</b>] Version: 1.0
+##Conditional Locks
 
 ```c
 
@@ -228,7 +282,7 @@ Features auto-logging locking macros for mutexes and rwlocks. It simply checks i
 
 Now imagine you have a data structure that uses rwlocks, or even mutexes. Now, the overhead of a mutex, no matter how optimized they are, is still unneeded on single threaded applications for said data structure. Hence, if lock is NULL it will result in a NOP, and do nothing. The compiler may even optimize away the check entirely and act like it's not there, who knows. The point being that it allows for more flexible data structures which can't be made lockless.
 
-##Events [<b>Stable</b>] Version: 1.2
+##Events
 
 ```c
 
@@ -260,7 +314,7 @@ events allows you to wait on events, and supports flags which allow you to set t
 
 events is an abstraction on top of a pthread_mutex, pthread_cond variable, and other flags. MU_Events are entirely thread safe and efficient, and also entirely flexible, coming with it's own MU_Logger support. You can also name events and pass the thread identifier to allow debugging said events easier.
 
-##Event Loop [<b>Unstable</b>] Version 0.6
+##Event Loop
 
 ```c
 
