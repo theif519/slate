@@ -44,28 +44,14 @@ thread_pool_t *pool = thread_pool_create(...);
 #include <thread_pool.h>
 ~~~
 
-<aside class="warning"> 
->You MUST place it before the inclusion of the package
-</aside>
-
 To avoid the issue of namespace collision, as C has only one namespace, all libraries in this package contain the C_UTILS_ prefix for macros, and c_utils_ prefix for functions and structs. Now, this can look rather ugly. For example...
 
-There's no dodging around it, the c_utils_ prefix makes everything more long-winded. However, this is necessary when writing libraries like these. While it may be unwieldy, maybe you think you don't have to worry about collisions for  a logger or a thread_pool because no other library you use has them. This is where the 'NO_C_UTILS_NO_PREFIX' define comes in. If you define this before importing the libraries, it will strip the c_utils prefix through macro defines, typedef most (99%) of the library the name, ended with a "_t". For example...
+There's no dodging around it, the c_utils_ prefix makes everything more long-winded. However, this is necessary when writing libraries like these. While it may be unwieldy, maybe you think you don't have to worry about collisions for  a logger or a thread_pool because no other library you use has them. This is where the `NO_C_UTILS_NO_PREFIX` define comes in. If you define this before importing the libraries, it will strip the c_utils prefix through macro defines, typedef most (99%) of the library the name, ended with a "_t". For example...
 
-Now it is a LOT less long-winded, and much more elegant looking. This trade off adds the issue of potential collision, so be warned. Because of this conciseness, all below code samples use the 'NO_C_UTILS_PREFIX', and so contain no c_utils_ prefix. 
+Now it is a LOT less long-winded, and much more elegant looking. This trade off adds the issue of potential collision, so be warned. Because of this conciseness, all below code samples use the `NO_C_UTILS_PREFIX`, and so contain no c_utils_ prefix. 
 
-##Lifetime Management
-
-Almost all objects returned from this library have some kind of reference counting built in to allow for easier management. This is, of course optional, as it is configurable (see next section). Enabling reference counting allows for other objects of the library to also maintain references to it while. In the end, if the reference counts are managed correctly, it can easily prevent memory leaks and become as easy to manage as a garbage collected language. 
-
-To this end, if reference counting is enabled for an object, you use the helper macros 'REF_DEC' instead of it's normal destructor to allow generic destruction of reference counted data, and 'REF_INC' to increment the count.
-
-<aside class="warning">
-The data passed to 'REF_DEC' and 'REF_INC' MUST have been created with the 'ref_create' function, and it is impossible to reference count an object after it's creation through a normal 'malloc' or 'calloc' call. Note as well, you should NEVER 'free' the data itself, just call 'REF_DEC' when finished.
-</aside>
-
-<aside class="success">
-If done correctly, it can become a very useful utility for managing shared data between different threads or even different objects in general.
+<aside class="warning"> 
+You MUST place it before the inclusion of the package
 </aside>
 
 ##Configurations
@@ -122,18 +108,54 @@ map_conf_t conf =
 map_t *map = map_create_conf(&conf);
 ~~~
 
-<aside class="notice">
-Some defaults are not optimal with all configurations. Sometimes if you specify one configuration, you should also specify another as well to get the behavior you want.
-</aside>
-
 As this library aims to be completely configurable, adding more and more parameters will no longer do the job. One can see that if an object can have a hundred different uses, having a hundred different parameters, especially when not even needed, can be impractical and cumbersome.
 
 The way the library conquers this is by allowing each object to be created with a configuration object. For example 'map_t' has a configuration object called 'map_conf_t'. This allows the fine-tunement of any given object when asked for, supplying it's own defaults when needed.
 
+<aside class="notice">
+Some defaults are not optimal with all configurations. Sometimes if you specify one configuration, you should also specify another as well to get the behavior you want.
+</aside>
+
+##Lifetime Management
+
+>Create reference counted priority queue for producer-consumer relationship.
+
+~~~c
+blocking_queue_conf_t conf = { .flags = BLOCKING_QUEUE_RC_INSTANCE };
+blocking_queue_t *pq = priority_queue_create_conf(&conf);
+~~~
+
+>Reference count is now 0. Assume that we continue filling up the blocking queue with items as the producer, while the consumer consumes those items. Now, normally this would be tricky, as we have to consider who frees the queue first, and what if we have multiple producers and consumers? We would then have to join and wait until all threads finish, complicating things. Instead, we can do this...
+
+~~~c
+REF_INC(queue);
+pass_data_to_consumer(queue);
+~~~
+
+>We must increment the count BEFORE passing it to the consumer to prevent any race conditions where we decrement our count before they get to increment their own. Now when either is finished...
+
+~~~c
+REF_DEC(queue);
+// Or...
+blocking_queue_destroy(queue);
+~~~
+
+Almost all objects returned from this library have some kind of reference counting built in to allow for easier management. This is, of course optional, as it is configurable (see next section). Enabling reference counting allows for other objects of the library to also maintain references to it while. In the end, if the reference counts are managed correctly, it can easily prevent memory leaks and become as easy to manage as a garbage collected language. 
+
+To this end, if reference counting is enabled for an object, you use the helper macro `REF_DEC` instead of it's normal destructor to allow generic destruction of reference counted data, and the other helper macro `REF_INC` to increment the count.
+
+<aside class="warning">
+The data passed to REF_DEC and REF_INC MUST have been created with the ref_create function, and it is impossible to reference count an object after it's creation through a normal malloc or calloc call. Note as well, you should NEVER free the data itself, just call REF_DEC when finished.
+</aside>
+
+<aside class="success">
+If done correctly, it can become a very useful utility for managing shared data between different threads or even different objects in general.
+</aside>
+
 #Threading
 
 Library | Version | Status
-------- | ------- | ------
+:------- | :-------: | ------:
 Thread Pool | 1.3 | Stable
 Scoped Lock | 0.75 | Unstable
 Conditional Locks | 1.0 | Stable
@@ -176,7 +198,7 @@ result_t *result = thread_pool_add(tp, task_example, args, flags);
 
 // -1 = no timeout, wait until task finishes.
 long timeout = -1;
-void *retval = result_get(result, -1);
+void *retval = result_get(result, timeout);
 result_destroy(result);
 ~~~
 
@@ -200,7 +222,7 @@ thread_pool_pause(tp, timeout);
 
 ~~~c
 long timeout = -1;
-thread_pool_wait(tp, -1);
+thread_pool_wait(tp, timeout);
 
 thread_pool_destroy(tp);
 ~~~
