@@ -241,155 +241,272 @@ Another note to mention is that the thread pool showcases the use of MU_Events, 
 
 ##Scoped Locks
 
-```c
+>Scoped Spinlock
 
-static logger_t *logger;
+~~~c
+scoped_lock_conf_t conf = 
+{
+  .logger = my_logger,
+  .flags = SCOPED_LOCK_RC_INSTANCE
+};
 
-/*
-    Allocation
-*/
-// If we want a spinlock?
-scoped_lock_t *lock_1 = scoped_lock_spinlock(0, logger);
-// What if we want to create one from an already existing lock?
+int spinlock_flags = 0;
+scoped_lock_t *s_lock = scoped_lock_spinlock_conf(spinlock_flags, &conf);
+~~~
+
+>Scoped Reader-Writer Lock
+
+~~~c
+pthread_rwlockattr_t *attr = NULL;
+scoped_lock_t *s_lock = scoped_lock_rwlock_conf(attr, &conf);
+~~~
+
+>Scoped Lock Generic Creation
+
+~~~c
+// Initialized lock
 pthread_mutex_t *lock;
-scoped_lock_t *lock_2 = SCOPED_LOCK_FROM(lock);
-// What if we do not want a lock at times?
-scoped_lock_t *lock_3 = scoped_lock_no_op();
+// Uses mutex lock.
+scoped_lock_t *s_lock = SCOPED_LOCK_FROM_CONF(lock, &conf);
+~~~
 
-/*
-    Scoped Locking
-*/
-// Regardless of type, it will work the same.
-scoped_lock_t *s_lock;
+>Don't need a lock at times? We have you covered!
 
-// Single-line
-SCOPED_LOCK(s_lock)
-    do_something();
+~~~c
+scoped_lock_t *s_lock = scoped_lock_no_op();
+~~~
 
-// Multi-line
+>Automatic acquire and release of lock.
+
+~~~c
 SCOPED_LOCK(s_lock) {
-    do_something();
-    do_something_else();
-    if (is_something) {
-        // Note, we return without needing to unlock.
-        return;
-    }
-    finally_do_something();
+  do_something();
+  do_something_else();
+  if (is_something) {
+      // Note, we return without needing to unlock.
+      return;
+  }
+  finally_do_something();
 }
+~~~
 
-/*
-    Sometimes the compilers throws a warning (or error) because you return inside of the scoped_lock block. This can be mitigated with the C_UTILS_UNACCESSEIBLE macro.
-*/
+>Even for one-liners
 
+~~~c
+SCOPED_LOCK(s_lock)
+  do_something_cool();
+~~~
+
+>Specifically for Reader-Writer locks
+
+~~~c
+SCOPED_WRLOCK(s_lock);
+
+SCOPED_RDLOCK(s_lock);
+~~~
+
+>For that nagging compiler warning
+
+~~~c
 C_UTILS_UNACCESSIBLE;
+~~~
 
-```
+An implementation of a C++-like scope_lock. The premise is that locks should be managed on it's own, and is finally made possible using GCC and Clang's compiler attributes, __cleanup__. The locks supported so far are `pthread_mutex_t`, `pthread_spinlock_t`, `pthread_rwlock_t`, and soon sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts and relaxes the acquire/release semantics for the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.
 
-An implementation of a C++-like scope_lock. The premise is that locks should be managed on it's own, and is finally made possible using GCC and Clang's compiler attributes, __cleanup__. The locks supported so far are pthread_mutex_t, pthread_spinlock_t, and sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts the need for the need to lock/unlock the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.
+Lastly, another key feature to it being type-agnostic is that you can effortlessly change the underlying lock from a mutex, to a spinlock, to a semaphore and keep the code (and critical sections) the same. Of course, you can also disable locking if you specifically want to remove synchronization as well.
+
+<aside class='warning'>
+The underlying lock must support secondary locking, I.E Reader-Writer lock, to use SCOPED_RDLOCK. Hence, if you attempt to invoke it with a mutex, it will throw an assertion and abort.
+</aside>
+
+<aside class='notice'>
+Since it is possible to always return inside of a for loop, and the for loop will ALWAYS execute the block, the compiler does not know this. Therefore, it will complain about not returning after a scoped block. The official way to do this is to use the C_UTILS_UNACCESSIBLE macro.
+</aside>
+
+<aside class='success'>
+If used correctly, it can be an invaluable tool for writing newer multi-threaded code. The type agnosticism easily allows you to switch out locks even at runtime with no effort, or even disable locks altogether.
+</aside>
 
 ##Conditional Locks
 
-```c
+>Supports Mutexes
 
-/// Assume this gets initialized before being called.
-pthread_rwlock_t *lock;
-/// Etc.
-COND_RWLOCK_RDLOCK(lock, logger);
-/// Later, maybe in some other thread...
+~~~c
+COND_MUTEX_LOCK(lock, logger);
+COND_MUTEX_UNLOCK(lock, logger);
+~~~
+
+> And Reader-Writer Locks
+
+~~~c
+// Writer Lock
 COND_RWLOCK_WRLOCK(lock, logger);
 
-```
+// Reader Lock
+COND_RWLOCK_RDLOCK(lock, logger);
 
-Features auto-logging locking macros for mutexes and rwlocks. It simply checks if the lock if NULL before attempting to lock, as attempting to lock a NULL pthread_*_t argument will cause a segmentation fault. Also should note that if something goes wrong, I.E on EDEADLK, it will log the precise location of said errors.
+// Unlock
+COND_RWLOCK_UNLOCK(lock, logger);
+~~~
 
-Now imagine you have a data structure that uses rwlocks, or even mutexes. Now, the overhead of a mutex, no matter how optimized they are, is still unneeded on single threaded applications for said data structure. Hence, if lock is NULL it will result in a NOP, and do nothing. The compiler may even optimize away the check entirely and act like it's not there, who knows. The point being that it allows for more flexible data structures which can't be made lockless.
+Library provides helper macros for...
+
+1. Automatically log any errors returned by the lock
+2. Conditionally lock or unlock depending on whether the passed lock was NULL, providing a safe wrapper for disabling locks in the future.
+
+To give an example of it's usefulness, you have to imagine a scenario where you do not want to lock due to some changes at runtime, for example, a list may utilize a lock, but, if there is only one thread, it is wasting time by acquiring and releasing the lock. This is the way to do so in the case that you do not want to use the scoped_lock_t objects and want to have manual control over when you lock and unlock.
+
+It also extremely useful for debugging EDEADLK and where they occur.
 
 ##Events
 
-```c
+>Creation with configuration object (optional)
 
-/// Logger for events. Assume it gets initialized and setup before calling events.
-static logger_t *event_logger;
-/*
-    The event object used for signaling and waiting on events.
-    This event is named "Test Event" and logs to the event logger,
-    inituitively. It is signaled by default, hence those calling to wait on it
-    will return immediately. The first thread to leave this event
-    successfully, will reset the event to non-signaled state.
-*/
-event_t *event = event_create("Test Event", event_logger, TU_EVENT_SIGNALED_BY_DEFAULT | TU_EVENT_AUTO_RESET);
-/// We now to want wait on this event. Thread identifier can be anything, but lets just use pthread_self.
-event_wait(event, -1, (unsigned int) pthread_self());
-/// Now some other thread signals this...
-event_signal(event, (unsigned int) pthread_self());
-/* 
-    Now, we're done with said event. Destroy it. Note that if any threads are 
-    waiting on it, they are woken up and can gracefully exit.
-*/
-event_destroy(event, (unsigned int) pthread_self());
+~~~c
+event_conf_t conf = 
+{
+  .logger = my_logger,
+  .name = "My Event",
+  .flags = EVENT_SUCCESS_ON_TIMEOUT | EVENT_RC_INSTANCE
+};
 
-```
+event_t *evt = event_create_conf(&conf);
+~~~
 
-An implementation of Win32 Events. As of yet, it allows you to wait on an event, which is equivalent to waiting on a condition variable, signaled by other threads. 
+>Signal that an event has occured
 
-events allows you to wait on events, and supports flags which allow you to set the default state, whether or not to signal the event after a timeout, and whether or not to auto-reset the event after a thread exits the event, or after the last waiting thread leaves. 
+~~~c
+// Wakes one random thread.
+event_signal(event);
+// Wakes all threads.
+event_broadcast(event);
+~~~
 
-events is an abstraction on top of a pthread_mutex, pthread_cond variable, and other flags. MU_Events are entirely thread safe and efficient, and also entirely flexible, coming with it's own MU_Logger support. You can also name events and pass the thread identifier to allow debugging said events easier.
+>Wait for an event to occur
+
+~~~c
+// Milliseconds...
+int timeout = 5000;
+while(!event_wait(event, timeout))
+  poll_then_sleep();
+~~~
+
+>Destroy the event. If it is reference counted, this decrements the count instead. When it is being destroyed, it will wake up all threads waiting on the event.
+
+~~~c
+// How long you're willing to wait until all threads finish. -1 = infinite
+int max_timeout = -1;
+event_destroy(event, max_timeout);
+~~~
+
+An events implementation built on top of a condition variable and a mutex. Provides an abstraction for using both, and some utilities for managing threads waiting on that event, and also configurations to modify the actions taken while operating under the event. This event is similar to Win32's events, in that it supports flags to allow similar functionality.
+
+event_t allows you to wait on events, and supports flags which allow you to set the default state, whether or not to signal the event after a timeout, and whether or not to auto-reset the event after a thread exits the event, or after the last waiting thread leaves. 
+
+event_t also will wait for other threads to finish before destruction (although it is better used with a reference count if that becomes a problem).
+
+<aside class="warning">
+Extra special care must be taken if reference counting is not being used. Although the event will not be destroyed until ALL threads inside of the event exit, any threads attempting to access it afterwards will invoke undefined behavior. Hence, you need some external way to notify threads that the event is dead.
+</aside>
 
 ##Event Loop
 
-```c
+>Below is a rather extensive example of how a dispatch for the event loop would look for a server that reads data from a client, formulates it into an HTTP request, and formulates their own HTTP response. Quite a few things are left out, but it should get the point across.
 
-void *prepare_event(void *data) {
-    return malloc(sizeof(struct some_event_t));
+~~~c
+event_flags_e dispatch(void *usr_data, int fd, int flags) {
+  char buf[BUFSIZ];
+  string_buffer_t *buf = usr_data;
+
+  if(flags & EVENT_FLAGS_READ) {
+    int bytes = read(fd, buf, BUFSIZ);
+    if(!bytes)
+      return EVENT_FLAGS_READ_DONE;
+
+    STRING_BUFFER_APPEND_FORMAT(".*s", buf, bytes);
+
+    // We re-enable polling for write here if it has been disabled elsewhere.
+    return EVENT_FLAGS_WRITE;
+  }
+
+  if(flags & EVENT_FLAGS_WRITE) {
+    char *str = string_buffer_take(buf);
+    /*
+      We have to wait until we can READ first, so we opt out of receiving events for write unless we have some data in our buffer. More efficient this way.
+    */
+    if(!str)
+      return EVENT_FLAGS_WRITE_DONE;
+
+    /*
+      Treat what we read as an HTTP request, and formulate a response here.
+    */
+    response_t *res = create_response_from_request_str(str);
+    char *res_str = response_to_string(res);
+    int bytes = write(fd, res_str, strlen(res_str));
+    if(bytes != strlen(res_str))
+      handle_excess_data(res_str + bytes);
+
+    return EVENT_FLAGS_NONE; // or return 0;
+  }
 }
+~~~
 
-bool check_event(void *data) {
-    return do_something_with(data)
-}
+>Create event sources, with the extensive configuration objects
 
-bool dispatch_event(void *data) {
-    notify_thread_waiting_on(data);
-    return true;
-}
+~~~c
+event_source_conf_t conf = 
+{
+  .user_data = str_buf,
+  .logger = my_logger,
+  .callbacks.finalizer = string_buffer_destroy,
+  .flags = EVENT_SOURCE_RC_INSTANCE
+};
 
-bool finalize_event(void *data) {
-    free(data);
-    return true;
-}
+event_source_t *source = event_source_create_conf(int fd, dispatch, &conf);
+~~~
 
-bool print_something(void *data) {
-    printf("Something!\n");
-    return true;
-}
+>Create a local event using pipes; the event loop polls on the reader file descriptor, and the user writes to the writer file descriptor
 
-/*
-    The below is an example of how to use the event loop.
-    It creates a simple event with it's appropriate callbacks,
-    then sets it's timeout to 0, meaning it is polled on once every
-    10ms. Next is a timed_event, which is will print "Something!" once
-    every 10 seconds.
-*/
-int main(void) {
-    event_source_t *event = event_source_create(prepare_event, check_event, dispatch_event, finalize_event, 0);
-    event_source_t *timed_event = event_source_create(NULL, NULL, print_something, NULL, 10);
+~~~c
+int write_fd;
+event_source_t *source;
+EVENT_SOURCE_LOCAL_CONF(source, write_fd, local_dispatcher, &conf);
+~~~
 
-    event_loop_t *loop = event_loop_create();
-    
-    event_loop_add(loop, event);
-    event_loop_add(loop, timed_event);
-    event_loop_run(loop);
-    
-    return 0;
-}
+>Create an event for asynchronously reading a FILE.
 
-```
+~~~c
+FILE *fp;
+event_source_t *source;
+EVENT_SOURCE_FILE_CONF(source, fp, async_file_reader, &conf);
+~~~
 
-event_loop, is a simple, minimal event loop, which allows you to add event sources, and have them be polled on at regular intervals. The Event Loop also has support for timed or timer events, upon which the dispatch callback will be called when it's timeout ellapses.
+>Create a timer event
 
-The Event Loop is rather simple and bare bones for now, polling once every 10ms, hence the amount of precision is very high, yet somewhat expensive, however not too much so, but does not scale well when idle and does better when it has a lot of tasks to do/poll for.
+~~~c
+// Milliseconds.
+int timeout = 5000;
+event_source_t *source = event_source_create_timed_conf(timeout, timed_dispatch, &conf);
+~~~
 
-The Event Loop takes a prepare callback (to prepare any such data to be passed to an event when ready), a check callback (to check if the event is ready), a dispatch callback (to notify any threads waiting on the event), and finally a finalize callback (to destroy the user data when it is finished).
+>Finally, create the loop add these sources!
+
+~~~c
+event_loop_t *loop = event_loop_create();
+event_loop_add(source);
+~~~
+
+event_loop_t is a callback-based event loop which dispatches events once the file descriptors associated with them are ready. event_source_t objects can be created to configure their specific behavior, such as the functions used to dispatch once ready, the user_data to pass to each dispatch function, and how to finalize the data once finished, if applicable.
+
+The event_source_t objects can also be created through their useful helper constructors and macros to allow for easier setting up of events. Dispatcher functions can return flags which help to notify the event_loop_t what to poll for when using that file descriptor, hence allowing dynamic and responsive events when done correctly.
+
+<aside class="notice">
+Dispatch functions SHOULD be short and should NOT ever block. That is, one should NOT poll for data from one file descriptor and write to another as they could potentially block. Instead, local event_source_t objects can help act as a medium between reading, writing to a buffer, then writing the contents of that buffer to another file descriptor once ready. That, or reading all into a buffer, then waiting until they have finished, and THEN submit the buffer as a new event to be written.
+</aside>
+
+The event_source_t objects, when reference counted, are extremely useful, as they can then be have their reference stolen by the event_loop_t and have it handle destruction of the event once it finishes, as well as finalizing the data.
+
+The main benefit of using an event_loop over a thread pool is that, one, it uses less resources and is more efficient when you need to involve multiple threads, and as well there is no need to worry about synchornization as things occur sequentially  if everything is handled by the event_loop. 
 
 #Memory Management
 
