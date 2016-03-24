@@ -464,102 +464,187 @@ If used correctly, it can be an invaluable tool for writing newer multi-threaded
 </aside>
 
 <h2 id="conditional-locks">Conditional Locks</h2>
-<pre class="highlight c"><code>
-<span class="c1">/// Assume this gets initialized before being called.
-</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">lock</span><span class="p">;</span>
-<span class="c1">/// Etc.
-</span><span class="n">COND_RWLOCK_RDLOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
-<span class="c1">/// Later, maybe in some other thread...
+
+<blockquote>
+<p>Supports Mutexes</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">COND_MUTEX_LOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
+<span class="n">COND_MUTEX_UNLOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>And Reader-Writer Locks</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// Writer Lock
 </span><span class="n">COND_RWLOCK_WRLOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
 
+<span class="c1">// Reader Lock
+</span><span class="n">COND_RWLOCK_RDLOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
+
+<span class="c1">// Unlock
+</span><span class="n">COND_RWLOCK_UNLOCK</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">logger</span><span class="p">);</span>
 </code></pre>
 
-<p>Features auto-logging locking macros for mutexes and rwlocks. It simply checks if the lock if NULL before attempting to lock, as attempting to lock a NULL pthread_*_t argument will cause a segmentation fault. Also should note that if something goes wrong, I.E on EDEADLK, it will log the precise location of said errors.</p>
+<p>Library provides helper macros for&hellip;</p>
 
-<p>Now imagine you have a data structure that uses rwlocks, or even mutexes. Now, the overhead of a mutex, no matter how optimized they are, is still unneeded on single threaded applications for said data structure. Hence, if lock is NULL it will result in a NOP, and do nothing. The compiler may even optimize away the check entirely and act like it&rsquo;s not there, who knows. The point being that it allows for more flexible data structures which can&rsquo;t be made lockless.</p>
+<ol>
+<li>Automatically log any errors returned by the lock</li>
+<li>Conditionally lock or unlock depending on whether the passed lock was NULL, providing a safe wrapper for disabling locks in the future.</li>
+</ol>
+
+<p>To give an example of it&rsquo;s usefulness, you have to imagine a scenario where you do not want to lock due to some changes at runtime, for example, a list may utilize a lock, but, if there is only one thread, it is wasting time by acquiring and releasing the lock. This is the way to do so in the case that you do not want to use the scoped_lock_t objects and want to have manual control over when you lock and unlock.</p>
+
+<p>It also extremely useful for debugging EDEADLK and where they occur.</p>
 
 <h2 id="events">Events</h2>
-<pre class="highlight c"><code>
-<span class="c1">/// Logger for events. Assume it gets initialized and setup before calling events.
-</span><span class="k">static</span> <span class="n">logger_t</span> <span class="o">*</span><span class="n">event_logger</span><span class="p">;</span>
-<span class="cm">/*
-    The event object used for signaling and waiting on events.
-    This event is named "Test Event" and logs to the event logger,
-    inituitively. It is signaled by default, hence those calling to wait on it
-    will return immediately. The first thread to leave this event
-    successfully, will reset the event to non-signaled state.
-*/</span>
-<span class="n">event_t</span> <span class="o">*</span><span class="n">event</span> <span class="o">=</span> <span class="n">event_create</span><span class="p">(</span><span class="s">"Test Event"</span><span class="p">,</span> <span class="n">event_logger</span><span class="p">,</span> <span class="n">TU_EVENT_SIGNALED_BY_DEFAULT</span> <span class="o">|</span> <span class="n">TU_EVENT_AUTO_RESET</span><span class="p">);</span>
-<span class="c1">/// We now to want wait on this event. Thread identifier can be anything, but lets just use pthread_self.
-</span><span class="n">event_wait</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span> <span class="n">pthread_self</span><span class="p">());</span>
-<span class="c1">/// Now some other thread signals this...
-</span><span class="n">event_signal</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span> <span class="n">pthread_self</span><span class="p">());</span>
-<span class="cm">/* 
-    Now, we're done with said event. Destroy it. Note that if any threads are 
-    waiting on it, they are woken up and can gracefully exit.
-*/</span>
-<span class="n">event_destroy</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span> <span class="n">pthread_self</span><span class="p">());</span>
 
+<blockquote>
+<p>Creation with configuration object (optional)</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">event_conf_t</span> <span class="n">conf</span> <span class="o">=</span> 
+<span class="p">{</span>
+  <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">my_logger</span><span class="p">,</span>
+  <span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">"My Event"</span><span class="p">,</span>
+  <span class="p">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">EVENT_SUCCESS_ON_TIMEOUT</span> <span class="o">|</span> <span class="n">EVENT_RC_INSTANCE</span>
+<span class="p">};</span>
+
+<span class="n">event_t</span> <span class="o">*</span><span class="n">evt</span> <span class="o">=</span> <span class="n">event_create_conf</span><span class="p">(</span><span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
 </code></pre>
 
-<p>An implementation of Win32 Events. As of yet, it allows you to wait on an event, which is equivalent to waiting on a condition variable, signaled by other threads. </p>
+<blockquote>
+<p>Signal that an event has occured</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// Wakes one random thread.
+</span><span class="n">event_signal</span><span class="p">(</span><span class="n">event</span><span class="p">);</span>
+<span class="c1">// Wakes all threads.
+</span><span class="n">event_broadcast</span><span class="p">(</span><span class="n">event</span><span class="p">);</span>
+</code></pre>
 
-<p>events allows you to wait on events, and supports flags which allow you to set the default state, whether or not to signal the event after a timeout, and whether or not to auto-reset the event after a thread exits the event, or after the last waiting thread leaves. </p>
+<blockquote>
+<p>Wait for an event to occur</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// Milliseconds...
+</span><span class="kt">int</span> <span class="n">timeout</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">;</span>
+<span class="k">while</span><span class="p">(</span><span class="o">!</span><span class="n">event_wait</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">timeout</span><span class="p">))</span>
+  <span class="n">poll_then_sleep</span><span class="p">();</span>
+</code></pre>
 
-<p>events is an abstraction on top of a pthread_mutex, pthread_cond variable, and other flags. MU_Events are entirely thread safe and efficient, and also entirely flexible, coming with it&rsquo;s own MU_Logger support. You can also name events and pass the thread identifier to allow debugging said events easier.</p>
+<blockquote>
+<p>Destroy the event. If it is reference counted, this decrements the count instead. When it is being destroyed, it will wake up all threads waiting on the event.</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// How long you're willing to wait until all threads finish. -1 = infinite
+</span><span class="kt">int</span> <span class="n">max_timeout</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="n">event_destroy</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">max_timeout</span><span class="p">);</span>
+</code></pre>
+
+<p>An events implementation built on top of a condition variable and a mutex. Provides an abstraction for using both, and some utilities for managing threads waiting on that event, and also configurations to modify the actions taken while operating under the event. This event is similar to Win32&rsquo;s events, in that it supports flags to allow similar functionality.</p>
+
+<p>event_t allows you to wait on events, and supports flags which allow you to set the default state, whether or not to signal the event after a timeout, and whether or not to auto-reset the event after a thread exits the event, or after the last waiting thread leaves. </p>
+
+<p>event_t also will wait for other threads to finish before destruction (although it is better used with a reference count if that becomes a problem).</p>
+
+<aside class="warning">
+Extra special care must be taken if reference counting is not being used. Although the event will not be destroyed until ALL threads inside of the event exit, any threads attempting to access it afterwards will invoke undefined behavior. Hence, you need some external way to notify threads that the event is dead.
+</aside>
 
 <h2 id="event-loop">Event Loop</h2>
-<pre class="highlight c"><code>
-<span class="kt">void</span> <span class="o">*</span><span class="nf">prepare_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">some_event_t</span><span class="p">));</span>
+
+<blockquote>
+<p>Below is a rather extensive example of how a dispatch for the event loop would look for a server that reads data from a client, formulates it into an HTTP request, and formulates their own HTTP response. Quite a few things are left out, but it should get the point across.</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">event_flags_e</span> <span class="nf">dispatch</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">usr_data</span><span class="p">,</span> <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">BUFSIZ</span><span class="p">];</span>
+  <span class="n">string_buffer_t</span> <span class="o">*</span><span class="n">buf</span> <span class="o">=</span> <span class="n">usr_data</span><span class="p">;</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">EVENT_FLAGS_READ</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">bytes</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">BUFSIZ</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">bytes</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">EVENT_FLAGS_READ_DONE</span><span class="p">;</span>
+
+    <span class="n">STRING_BUFFER_APPEND_FORMAT</span><span class="p">(</span><span class="s">".*s"</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">bytes</span><span class="p">);</span>
+
+    <span class="c1">// We re-enable polling for write here if it has been disabled elsewhere.
+</span>    <span class="k">return</span> <span class="n">EVENT_FLAGS_WRITE</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">EVENT_FLAGS_WRITE</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">str</span> <span class="o">=</span> <span class="n">string_buffer_take</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+    <span class="cm">/*
+      We have to wait until we can READ first, so we opt out of receiving events for write unless we have some data in our buffer. More efficient this way.
+    */</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">str</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">EVENT_FLAGS_WRITE_DONE</span><span class="p">;</span>
+
+    <span class="cm">/*
+      Treat what we read as an HTTP request, and formulate a response here.
+    */</span>
+    <span class="n">response_t</span> <span class="o">*</span><span class="n">res</span> <span class="o">=</span> <span class="n">create_response_from_request_str</span><span class="p">(</span><span class="n">str</span><span class="p">);</span>
+    <span class="kt">char</span> <span class="o">*</span><span class="n">res_str</span> <span class="o">=</span> <span class="n">response_to_string</span><span class="p">(</span><span class="n">res</span><span class="p">);</span>
+    <span class="kt">int</span> <span class="n">bytes</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">res_str</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">res_str</span><span class="p">));</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">bytes</span> <span class="o">!=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">res_str</span><span class="p">))</span>
+      <span class="n">handle_excess_data</span><span class="p">(</span><span class="n">res_str</span> <span class="o">+</span> <span class="n">bytes</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">EVENT_FLAGS_NONE</span><span class="p">;</span> <span class="c1">// or return 0;
+</span>  <span class="p">}</span>
 <span class="p">}</span>
-
-<span class="n">bool</span> <span class="nf">check_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="n">do_something_with</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="n">bool</span> <span class="nf">dispatch_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">notify_thread_waiting_on</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
-    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">bool</span> <span class="nf">finalize_event</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">free</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
-    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">bool</span> <span class="nf">print_something</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"Something!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="cm">/*
-    The below is an example of how to use the event loop.
-    It creates a simple event with it's appropriate callbacks,
-    then sets it's timeout to 0, meaning it is polled on once every
-    10ms. Next is a timed_event, which is will print "Something!" once
-    every 10 seconds.
-*/</span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">event_source_t</span> <span class="o">*</span><span class="n">event</span> <span class="o">=</span> <span class="n">event_source_create</span><span class="p">(</span><span class="n">prepare_event</span><span class="p">,</span> <span class="n">check_event</span><span class="p">,</span> <span class="n">dispatch_event</span><span class="p">,</span> <span class="n">finalize_event</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-    <span class="n">event_source_t</span> <span class="o">*</span><span class="n">timed_event</span> <span class="o">=</span> <span class="n">event_source_create</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">print_something</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
-
-    <span class="n">event_loop_t</span> <span class="o">*</span><span class="n">loop</span> <span class="o">=</span> <span class="n">event_loop_create</span><span class="p">();</span>
-
-    <span class="n">event_loop_add</span><span class="p">(</span><span class="n">loop</span><span class="p">,</span> <span class="n">event</span><span class="p">);</span>
-    <span class="n">event_loop_add</span><span class="p">(</span><span class="n">loop</span><span class="p">,</span> <span class="n">timed_event</span><span class="p">);</span>
-    <span class="n">event_loop_run</span><span class="p">(</span><span class="n">loop</span><span class="p">);</span>
-
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-
 </code></pre>
 
-<p>event_loop, is a simple, minimal event loop, which allows you to add event sources, and have them be polled on at regular intervals. The Event Loop also has support for timed or timer events, upon which the dispatch callback will be called when it&rsquo;s timeout ellapses.</p>
+<blockquote>
+<p>Create event sources, with the extensive configuration objects</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">event_source_conf_t</span> <span class="n">conf</span> <span class="o">=</span> 
+<span class="p">{</span>
+  <span class="p">.</span><span class="n">user_data</span> <span class="o">=</span> <span class="n">str_buf</span><span class="p">,</span>
+  <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">my_logger</span><span class="p">,</span>
+  <span class="p">.</span><span class="n">callbacks</span><span class="p">.</span><span class="n">finalizer</span> <span class="o">=</span> <span class="n">string_buffer_destroy</span><span class="p">,</span>
+  <span class="p">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">EVENT_SOURCE_RC_INSTANCE</span>
+<span class="p">};</span>
 
-<p>The Event Loop is rather simple and bare bones for now, polling once every 10ms, hence the amount of precision is very high, yet somewhat expensive, however not too much so, but does not scale well when idle and does better when it has a lot of tasks to do/poll for.</p>
+<span class="n">event_source_t</span> <span class="o">*</span><span class="n">source</span> <span class="o">=</span> <span class="n">event_source_create_conf</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">dispatch</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
 
-<p>The Event Loop takes a prepare callback (to prepare any such data to be passed to an event when ready), a check callback (to check if the event is ready), a dispatch callback (to notify any threads waiting on the event), and finally a finalize callback (to destroy the user data when it is finished).</p>
+<blockquote>
+<p>Create a local event using pipes; the event loop polls on the reader file descriptor, and the user writes to the writer file descriptor</p>
+</blockquote>
+<pre class="highlight c"><code><span class="kt">int</span> <span class="n">write_fd</span><span class="p">;</span>
+<span class="n">event_source_t</span> <span class="o">*</span><span class="n">source</span><span class="p">;</span>
+<span class="n">EVENT_SOURCE_LOCAL_CONF</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">write_fd</span><span class="p">,</span> <span class="n">local_dispatcher</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Create an event for asynchronously reading a FILE.</p>
+</blockquote>
+<pre class="highlight c"><code><span class="kt">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">;</span>
+<span class="n">event_source_t</span> <span class="o">*</span><span class="n">source</span><span class="p">;</span>
+<span class="n">EVENT_SOURCE_FILE_CONF</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">async_file_reader</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Create a timer event</p>
+</blockquote>
+<pre class="highlight c"><code><span class="c1">// Milliseconds.
+</span><span class="kt">int</span> <span class="n">timeout</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">;</span>
+<span class="n">event_source_t</span> <span class="o">*</span><span class="n">source</span> <span class="o">=</span> <span class="n">event_source_create_timed_conf</span><span class="p">(</span><span class="n">timeout</span><span class="p">,</span> <span class="n">timed_dispatch</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Finally, create the loop add these sources!</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">event_loop_t</span> <span class="o">*</span><span class="n">loop</span> <span class="o">=</span> <span class="n">event_loop_create</span><span class="p">();</span>
+<span class="n">event_loop_add</span><span class="p">(</span><span class="n">source</span><span class="p">);</span>
+</code></pre>
+
+<p>event_loop_t is a callback-based event loop which dispatches events once the file descriptors associated with them are ready. event_source_t objects can be created to configure their specific behavior, such as the functions used to dispatch once ready, the user_data to pass to each dispatch function, and how to finalize the data once finished, if applicable.</p>
+
+<p>The event_source_t objects can also be created through their useful helper constructors and macros to allow for easier setting up of events. Dispatcher functions can return flags which help to notify the event_loop_t what to poll for when using that file descriptor, hence allowing dynamic and responsive events when done correctly.</p>
+
+<aside class="notice">
+Dispatch functions SHOULD be short and should NOT ever block. That is, one should NOT poll for data from one file descriptor and write to another as they could potentially block. Instead, local event_source_t objects can help act as a medium between reading, writing to a buffer, then writing the contents of that buffer to another file descriptor once ready. That, or reading all into a buffer, then waiting until they have finished, and THEN submit the buffer as a new event to be written.
+</aside>
+
+<p>The event_source_t objects, when reference counted, are extremely useful, as they can then be have their reference stolen by the event_loop_t and have it handle destruction of the event once it finishes, as well as finalizing the data.</p>
+
+<p>The main benefit of using an event_loop over a thread pool is that, one, it uses less resources and is more efficient when you need to involve multiple threads, and as well there is no need to worry about synchornization as things occur sequentially  if everything is handled by the event_loop. </p>
 
 <h1 id="memory-management">Memory Management</h1>
 
