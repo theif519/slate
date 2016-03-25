@@ -648,25 +648,54 @@ Dispatch functions SHOULD be short and should NOT ever block. That is, one shoul
 
 <h1 id="memory-management">Memory Management</h1>
 
-<p>Memory Management Utilities provide useful tools and abstractions which will help automate, or at the very least, improve quality-of-life for a C programmers, which can be helpful to an amateur or a professional. All of the below are thread safe.</p>
+<p>This library features useful tools and abstractions which will not only help with memory management, but also improve overall efficiency.</p>
 
 <h2 id="hazard-pointers-unstable">Hazard Pointers [<b>Unstable</b>]</h2>
-<pre class="highlight c"><code>
-<span class="cm">/*
-    For an example, lets assume the structure of a basic
-    lock-free stack.
-*/</span>
-<span class="n">Stack_t</span> <span class="o">*</span><span class="n">stack</span><span class="p">;</span>
-<span class="cm">/*
-    Lets emulate a simple pop lockless procedure.
-*/</span>
-<span class="n">Node_t</span> <span class="o">*</span><span class="n">head</span><span class="p">,</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+
+<blockquote>
+<p>Creating the hazard pointer</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">hazard_conf_t</span> <span class="n">conf</span> <span class="o">=</span> 
+<span class="p">{</span>
+    <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">hazards_per_thread</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">max_threads</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">callbacks</span><span class="p">.</span><span class="n">destructor</span> <span class="o">=</span> <span class="n">shared_data_destroy</span>
+<span class="p">};</span>
+
+<span class="n">hazard_t</span> <span class="o">*</span><span class="n">h</span> <span class="o">=</span> <span class="n">hazard_create_conf</span><span class="p">(</span><span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Acquiring data (and checking if data is still valid)</p>
+</blockquote>
+<pre class="highlight c"><code><span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">shared_data</span> <span class="o">*</span><span class="n">dat</span><span class="p">;</span>
+
+<span class="n">hazard_acquire</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dat</span><span class="p">);</span>
+
+<span class="n">hazard_acquire_at</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dat</span><span class="p">,</span> <span class="n">index</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Releasing and retiring the data</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">hazard_release</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dat</span><span class="p">);</span>
+
+<span class="c1">// Retiring means the data is set to be deleted.
+</span><span class="n">hazard_retire_all</span><span class="p">(</span><span class="n">h</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Example - Lock-Free Stack&rsquo;s Pop procedure</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">Node_t</span> <span class="o">*</span><span class="n">head</span><span class="p">,</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
 <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">head</span> <span class="o">=</span> <span class="n">stack</span><span class="o">-&gt;</span><span class="n">head</span><span class="p">;</span>
     <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">head</span><span class="p">)</span> 
         <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
 
-    <span class="n">hazard_acquire</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">head</span><span class="p">);</span>
+    <span class="n">hazard_acquire</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">head</span><span class="p">);</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">head</span> <span class="o">!=</span> <span class="n">stack</span><span class="o">-&gt;</span><span class="n">head</span><span class="p">)</span> <span class="p">{</span>
         <span class="n">pthread_yield</span><span class="p">();</span>
         <span class="k">continue</span><span class="p">;</span>
@@ -679,63 +708,118 @@ Dispatch functions SHOULD be short and should NOT ever block. That is, one shoul
     <span class="n">pthread_yield</span><span class="p">();</span>
 <span class="p">}</span>
 <span class="kt">void</span> <span class="o">*</span><span class="n">data</span> <span class="o">=</span> <span class="n">head</span><span class="o">-&gt;</span><span class="n">item</span><span class="p">;</span>
-<span class="c1">// true = retire data, set to be deleted later, false = just remove reference
-</span><span class="n">hazard_release</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="nb">true</span><span class="p">);</span>
+<span class="n">hazard_retire</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">head</span><span class="p">);</span>
 
 </code></pre>
 
 <p>Provides a flexible and easy to use implementation of hazard pointers, described in the research paper by Maged M. Michael, <a href="http://www.research.ibm.com/people/m/michael/ieeetpds-2004.pdf">here</a>.</p>
 
-<p>The implementation is still in development and needing of testing, however I have an optimistic outlook on how it will look. Basically, you will &ldquo;acquire&rdquo; data via it&rsquo;s pointer and &ldquo;release&rdquo; it when you are finished. You must make sure to release the reference once finished with it, through the API calls hazard_acquire() and hazard_release and hazard_release_all.</p>
+<p>The hazard pointer is useful for when you have multiple threads contesting atomically over shared data, as you cannot readily free or delete the data while it is in use, as this would result in undefined behavior. In particular, this is used in lock free data structures to ensure rapid deletion and avoiding the ABA problem.</p>
 
-<p>Another notable feature is that you do not need to keep your own reference to the hazard pointer itself, as it&rsquo;s allocated as thread-local storage and allocated on first use. Lastly, any remaining data not freed before the program ends, will be destroyed when the library is unlinked (I.E program termination).</p>
+<aside class="warning">
+The configured maximum number of threads using the data structure MUST be accurate. If there are too many, you end up wasting memory, and if you have too little, then there aren&rsquo;t enough hazard pointers to assign to each thread, which fails an assertion.
+</aside>
 
-<h2 id="reference-counting-memory-allocator-unimplemented">Reference Counting Memory Allocator [<b>Unimplemented</b>]</h2>
+<p>When data is finished with, it will be destroyed via it&rsquo;s destructor, which cannot be changed after initial configuration.</p>
 
-<h3 id="planned">Planned</h3>
+<h2 id="lock-free-reference-counting">Lock-Free Reference Counting</h2>
 
-<ul>
-<li>A simple memory allocator that wraps malloc and maintains a reference count
+<blockquote>
+<p>Allocating reference counted data</p>
+</blockquote>
+<pre class="highlight c"><code><span class="k">struct</span> <span class="n">ref_count_conf_t</span> <span class="n">conf</span> <span class="o">=</span> 
+<span class="p">{</span>
+    <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">initial_ref_count</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">callbacks</span><span class="p">.</span><span class="n">desturctor</span> <span class="o">=</span> <span class="n">custom_destructor</span>
+<span class="p">};</span>
 
-<ul>
-<li>Reference count should go down whenever the wrapped free function is called.</li>
-</ul></li>
-<li>Each allocated item has it&rsquo;s own destructor
+<span class="k">struct</span> <span class="n">A</span> <span class="o">*</span><span class="n">a</span> <span class="o">=</span> <span class="n">ref_count_create_conf</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
 
-<ul>
-<li>Registered by user
+<blockquote>
+<p>Increment Reference Count</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">REF_INC</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</code></pre>
 
-<ul>
-<li>Defaults to free.</li>
-</ul></li>
-</ul></li>
-</ul>
+<blockquote>
+<p>Decrement Reference Count</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">REF_DEC</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</code></pre>
 
-<h2 id="object-pool-unimplemented">Object Pool [<b>Unimplemented</b>]</h2>
+<blockquote>
+<p>Remove all Reference Counts</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">REF_CLEAR</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</code></pre>
 
-<h3 id="planned">Planned</h3>
+<p>Reference counting in this library is a bit different from most. For example, the data itself does not need to keep its own reference count, or rather, the structure itself does not need to be modified. Instead, the library allocates and manages creating meta data for you, which can easily be retrieved later to manipulate and manage the object itself. </p>
 
-<ul>
-<li>Recycles a recyclable object to be used later.
+<aside class="warning">
+You must NEVER attempt to manipulate the reference count of an object not initially created through this library. I.E, you cannot reference count malloc&rsquo;d memory, nor can you free memory returned by this.
+</aside>
 
-<ul>
-<li>A callback is used to inform and manipulate the objects themselves to restore them to a state that can be reused.</li>
-</ul></li>
-<li>Manages objects
+<p>The reference count is atomically updated on increment and decrement, but extreme care must be taken to ensuredly use this library. If you attempt to decrement the count below -1, or access after it has reached -1, then you will invoke undefined behavior so&hellip;</p>
 
-<ul>
-<li>Creates new ones when it is empty and requires more
+<aside class="warning">
+Do NOT attempt to manipulate the data AFTER there are no longer any references to said data, or else this may invoke undefined behavior.
+</aside>
 
-<ul>
-<li>Through callbacks</li>
-</ul></li>
-<li>Destroys old ones when they have not been used for a while
+<p>On a side note, there are some checks in place to help ensure the appropriate use. For example, if you attempt to <code class="prettyprint">REF_INC</code>, <code class="prettyprint">REF_DEC</code>, or <code class="prettyprint">REF_CLEAR</code> the data after it has been destroyed OR data never allocated by this library, chances are it will fail a check and you will be able to see why it failed.</p>
 
-<ul>
-<li>Through callbacks.</li>
-</ul></li>
-</ul></li>
-</ul>
+<p>Almost every library in this package support reference counting in some way, and make it easier to manage them. If they support reference counting, they can optionally be destroyed by calling <code class="prettyprint">REF_DEC</code> instead of their custom destructors.</p>
+
+<h2 id="object-pool">Object Pool</h2>
+
+<blockquote>
+<p>Create Object pool.</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">object_pool_conf_t</span> <span class="n">conf</span> <span class="o">=</span> 
+<span class="p">{</span>
+    <span class="p">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">OBJECT_POOL_RC_INSTANCE</span> <span class="o">|</span> <span class="n">OBJECT_POOL_CONCURRENT</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">callbacks</span> <span class="o">=</span>
+    <span class="p">{</span>
+        <span class="p">.</span><span class="n">destructor</span> <span class="o">=</span> <span class="n">destroy_data</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">constructor</span> <span class="o">=</span> <span class="n">create_data</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">prepare</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">,</span>
+        <span class="p">.</span><span class="n">finished</span> <span class="o">=</span> <span class="n">finish_data</span>
+    <span class="p">},</span>
+    <span class="p">.</span><span class="n">destroy_timer</span><span class="p">.</span><span class="n">seconds</span> <span class="o">=</span> <span class="mi">360</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">growth_factor</span> <span class="o">=</span> <span class="mi">1</span><span class="p">.</span><span class="mi">5</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">initial_size</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="p">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+<span class="p">};</span>
+
+<span class="n">object_pool_t</span> <span class="o">*</span><span class="n">pool</span> <span class="o">=</span> <span class="n">object_pool_create_conf</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">my_data</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">conf</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Acquire from object pool</p>
+</blockquote>
+<pre class="highlight c"><code><span class="k">struct</span> <span class="n">my_data</span> <span class="o">*</span><span class="n">dat</span> <span class="o">=</span> <span class="n">object_pool_acquire</span><span class="p">(</span><span class="n">pool</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Release object back to pool</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">object_pool_release</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">dat</span><span class="p">);</span>
+</code></pre>
+
+<blockquote>
+<p>Destroy object</p>
+</blockquote>
+<pre class="highlight c"><code><span class="n">object_pool_destroy</span><span class="p">(</span><span class="n">pool</span><span class="p">);</span>
+</code></pre>
+
+<p>object_pool_t acts as a memory pool, which memory submitted can safely be recycled for next use. By assigning callbacks, such as destructor and constructor, one can easily have the memory pool destroy data as they are no longer needed, or create new ones when they are. Callbacks such as prepare and finished, prepare allows you to prepare data to be recycled and used, and finished allow you to configure its state so that it may be recycled. Hence, data prepared may be configured for immediate use, while finished may relinquish resources without actually destroying the data.</p>
+
+<p>destroy_timer allows the pool to be asynchronously managed by a global instance of an event_loop. This feature is optional, but can help manage shrinkage of the pool.</p>
+
+<p><notice class="notice">
+The object_pool can be managed asynchronously if the appropriate flags are used. The asynchronousity is used by a global event_loop instance. Hence, if you want the pool to shrink after a certain time has passed since the object has last been used, it will do so.
+</notice></p>
 
 <h1 id="string">String</h1>
 
