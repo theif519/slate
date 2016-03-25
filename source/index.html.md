@@ -510,27 +510,54 @@ The main benefit of using an event_loop over a thread pool is that, one, it uses
 
 #Memory Management
 
-Memory Management Utilities provide useful tools and abstractions which will help automate, or at the very least, improve quality-of-life for a C programmers, which can be helpful to an amateur or a professional. All of the below are thread safe.
+This library features useful tools and abstractions which will not only help with memory management, but also improve overall efficiency.
 
 ##Hazard Pointers [<b>Unstable</b>]
 
-```c
+>Creating the hazard pointer
 
-/*
-    For an example, lets assume the structure of a basic
-    lock-free stack.
-*/
-Stack_t *stack;
-/*
-    Lets emulate a simple pop lockless procedure.
-*/
+~~~c
+hazard_conf_t conf = 
+{
+    .logger = logger,
+    .hazards_per_thread = 1,
+    .max_threads = 4,
+    .callbacks.destructor = shared_data_destroy
+};
+
+hazard_t *h = hazard_create_conf(&conf);
+~~~
+
+>Acquiring data (and checking if data is still valid)
+
+~~~c
+int index = 0;
+struct shared_data *dat;
+
+hazard_acquire(h, dat);
+
+hazard_acquire_at(h, dat, index);
+~~~
+
+>Releasing and retiring the data
+
+~~~c
+hazard_release(h, dat);
+
+// Retiring means the data is set to be deleted.
+hazard_retire_all(h);
+~~~
+
+>Example - Lock-Free Stack's Pop procedure
+
+~~~c
 Node_t *head, *next;
 while (true) {
     head = stack->head;
     if (!head) 
         return NULL;
     
-    hazard_acquire(0, head);
+    hazard_acquire(h, head);
     if (head != stack->head) {
         pthread_yield();
         continue;
@@ -543,38 +570,118 @@ while (true) {
     pthread_yield();
 }
 void *data = head->item;
-// true = retire data, set to be deleted later, false = just remove reference
-hazard_release(head, true);
+hazard_retire(h, head);
 
-```
+~~~
 
 Provides a flexible and easy to use implementation of hazard pointers, described in the research paper by Maged M. Michael, [here](http://www.research.ibm.com/people/m/michael/ieeetpds-2004.pdf).
 
-The implementation is still in development and needing of testing, however I have an optimistic outlook on how it will look. Basically, you will "acquire" data via it's pointer and "release" it when you are finished. You must make sure to release the reference once finished with it, through the API calls hazard_acquire() and hazard_release and hazard_release_all.
+The hazard pointer is useful for when you have multiple threads contesting atomically over shared data, as you cannot readily free or delete the data while it is in use, as this would result in undefined behavior. In particular, this is used in lock free data structures to ensure rapid deletion and avoiding the ABA problem.
 
-Another notable feature is that you do not need to keep your own reference to the hazard pointer itself, as it's allocated as thread-local storage and allocated on first use. Lastly, any remaining data not freed before the program ends, will be destroyed when the library is unlinked (I.E program termination).
+<aside class="warning">
+The configured maximum number of threads using the data structure MUST be accurate. If there are too many, you end up wasting memory, and if you have too little, then there aren't enough hazard pointers to assign to each thread, which fails an assertion.
+</aside>
 
-##Reference Counting Memory Allocator [<b>Unimplemented</b>]
+When data is finished with, it will be destroyed via it's destructor, which cannot be changed after initial configuration.
 
-###Planned
+##Lock-Free Reference Counting
 
-* A simple memory allocator that wraps malloc and maintains a reference count
-    - Reference count should go down whenever the wrapped free function is called.
-* Each allocated item has it's own destructor
-    - Registered by user
-        + Defaults to free.
+>Allocating reference counted data
 
-##Object Pool [<b>Unimplemented</b>]
+~~~c
+struct ref_count_conf_t conf = 
+{
+    .logger = logger,
+    .initial_ref_count = 3,
+    .callbacks.desturctor = custom_destructor
+};
 
-###Planned
+struct A *a = ref_count_create_conf(sizeof(*a), &conf);
+~~~
 
-* Recycles a recyclable object to be used later.
-    - A callback is used to inform and manipulate the objects themselves to restore them to a state that can be reused.
-* Manages objects
-    - Creates new ones when it is empty and requires more
-        + Through callbacks
-    - Destroys old ones when they have not been used for a while
-        + Through callbacks.
+>Increment Reference Count
+
+~~~c
+REF_INC(a);
+~~~
+
+>Decrement Reference Count
+
+~~~c
+REF_DEC(a);
+~~~
+
+>Remove all Reference Counts
+
+~~~c
+REF_CLEAR(a);
+~~~
+
+Reference counting in this library is a bit different from most. For example, the data itself does not need to keep its own reference count, or rather, the structure itself does not need to be modified. Instead, the library allocates and manages creating meta data for you, which can easily be retrieved later to manipulate and manage the object itself. 
+
+<aside class="warning">
+You must NEVER attempt to manipulate the reference count of an object not initially created through this library. I.E, you cannot reference count malloc'd memory, nor can you free memory returned by this.
+</aside>
+
+The reference count is atomically updated on increment and decrement, but extreme care must be taken to ensuredly use this library. If you attempt to decrement the count below -1, or access after it has reached -1, then you will invoke undefined behavior so...
+
+<aside class="warning">
+Do NOT attempt to manipulate the data AFTER there are no longer any references to said data, or else this may invoke undefined behavior.
+</aside>
+
+On a side note, there are some checks in place to help ensure the appropriate use. For example, if you attempt to `REF_INC`, `REF_DEC`, or `REF_CLEAR` the data after it has been destroyed OR data never allocated by this library, chances are it will fail a check and you will be able to see why it failed.
+
+Almost every library in this package support reference counting in some way, and make it easier to manage them. If they support reference counting, they can optionally be destroyed by calling `REF_DEC` instead of their custom destructors.
+
+##Object Pool
+
+>Create Object pool.
+
+~~~c
+object_pool_conf_t conf = 
+{
+    .flags = OBJECT_POOL_RC_INSTANCE | OBJECT_POOL_CONCURRENT,
+    .callbacks =
+    {
+        .destructor = destroy_data,
+        .constructor = create_data,
+        .prepare = prepare_data,
+        .finished = finish_data
+    },
+    .destroy_timer.seconds = 360,
+    .growth_factor = 1.5,
+    .initial_size = 10,
+    .logger = logger
+};
+
+object_pool_t *pool = object_pool_create_conf(sizeof(struct my_data), &conf);
+~~~
+
+>Acquire from object pool
+
+~~~c
+struct my_data *dat = object_pool_acquire(pool);
+~~~
+
+>Release object back to pool
+
+~~~c
+object_pool_release(pool, dat);
+~~~
+
+>Destroy object
+
+~~~c
+object_pool_destroy(pool);
+~~~
+
+object_pool_t acts as a memory pool, which memory submitted can safely be recycled for next use. By assigning callbacks, such as destructor and constructor, one can easily have the memory pool destroy data as they are no longer needed, or create new ones when they are. Callbacks such as prepare and finished, prepare allows you to prepare data to be recycled and used, and finished allow you to configure its state so that it may be recycled. Hence, data prepared may be configured for immediate use, while finished may relinquish resources without actually destroying the data.
+
+destroy_timer allows the pool to be asynchronously managed by a global instance of an event_loop. This feature is optional, but can help manage shrinkage of the pool.
+
+<notice class="notice">
+The object_pool can be managed asynchronously if the appropriate flags are used. The asynchronousity is used by a global event_loop instance. Hence, if you want the pool to shrink after a certain time has passed since the object has last been used, it will do so.
+</notice>
 
 #String
 
