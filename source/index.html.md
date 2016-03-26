@@ -110,7 +110,7 @@ map_t *map = map_create_conf(&conf);
 
 As this library aims to be completely configurable, adding more and more parameters will no longer do the job. One can see that if an object can have a hundred different uses, having a hundred different parameters, especially when not even needed, can be impractical and cumbersome.
 
-The way the library conquers this is by allowing each object to be created with a configuration object. For example 'map_t' has a configuration object called 'map_conf_t'. This allows the fine-tunement of any given object when asked for, supplying it's own defaults when needed.
+The way the library conquers this is by allowing each object to be created with a configuration object. For example `map_t` has a configuration object called `map_conf_t`. This allows the fine-tunement of any given object when asked for, supplying it's own defaults when needed.
 
 <aside class="notice">
 Some defaults are not optimal with all configurations. Sometimes if you specify one configuration, you should also specify another as well to get the behavior you want.
@@ -122,7 +122,7 @@ Some defaults are not optimal with all configurations. Sometimes if you specify 
 
 ~~~c
 blocking_queue_conf_t conf = { .flags = BLOCKING_QUEUE_RC_INSTANCE };
-blocking_queue_t *pq = priority_queue_create_conf(&conf);
+blocking_queue_t *pq = blocking_queue_create_conf(&conf);
 ~~~
 
 >Reference count is now 0. Assume that we continue filling up the blocking queue with items as the producer, while the consumer consumes those items. Now, normally this would be tricky, as we have to consider who frees the queue first, and what if we have multiple producers and consumers? We would then have to join and wait until all threads finish, complicating things. Instead, we can do this...
@@ -160,8 +160,6 @@ Thread Pool | 1.3 | Stable
 Scoped Lock | 0.75 | Unstable
 Conditional Locks | 1.0 | Stable
 Events | 1.2 | Stable
-Event Loop | 0.6 | DEPRECATED
-
 
 ## Thread Pool
 >Thread pool task
@@ -233,11 +231,11 @@ The static thread pool maintains a steady amount of threads, never growing or sh
 
 Each task can return an asynchronous result, which, based on my implementation of events, you may wait (or poll) for when the task finishes. So, to reiterate, a task, by default, returns a result which can be waited on.
 
-When submitting tasks, it comes with it's own default priority and will return a result_t result to wait on, but by passing certain flags, like HIGH_PRIORITY | NO_RESULT you may flag tasks specifically.
+When submitting tasks, it comes with it's own default priority and will return a result_t result to wait on, but by passing certain flags, like `HIGH_PRIORITY | NO_RESULT` you may flag tasks specifically.
 
 Finally you can pause the thread pool, meaning, that currently running tasks finish up, but it will not run any more until after either a timeout elapses or the call to resume is made.
 
-Another note to mention is that the thread pool showcases the use of MU_Events, as waiting on a result is an event, so is to pause and resume.
+Another note to mention is that the thread pool showcases the use of `event_t`, as waiting on a result is an event, so is to pause and resume.
 
 ##Scoped Locks
 
@@ -311,7 +309,7 @@ SCOPED_RDLOCK(s_lock);
 C_UTILS_UNACCESSIBLE;
 ~~~
 
-An implementation of a C++-like scope_lock. The premise is that locks should be managed on it's own, and is finally made possible using GCC and Clang's compiler attributes, __cleanup__. The locks supported so far are `pthread_mutex_t`, `pthread_spinlock_t`, `pthread_rwlock_t`, and soon sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts and relaxes the acquire/release semantics for the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.
+`scoped_lock_t` is an implementation of a C++-like scope_lock. The premise is that locks should be managed on it's own, and is finally made possible using GCC and Clang's compiler attributes, `__cleanup__`. The locks supported so far are `pthread_mutex_t`, `pthread_spinlock_t`, `pthread_rwlock_t`, and soon sem_t. It will lock when entering the scope, and unlock when leaving (or in the case of sem_t, it will increment the count, and then decrement). This abstracts and relaxes the acquire/release semantics for the lock, as well as generifying the type of lock used as well, as the allocation is done using C11 generics. Hence, the type of underlying lock is type-agnostic.
 
 Lastly, another key feature to it being type-agnostic is that you can effortlessly change the underlying lock from a mutex, to a spinlock, to a semaphore and keep the code (and critical sections) the same. Of course, you can also disable locking if you specifically want to remove synchronization as well.
 
@@ -399,120 +397,27 @@ int max_timeout = -1;
 event_destroy(event, max_timeout);
 ~~~
 
-An events implementation built on top of a condition variable and a mutex. Provides an abstraction for using both, and some utilities for managing threads waiting on that event, and also configurations to modify the actions taken while operating under the event. This event is similar to Win32's events, in that it supports flags to allow similar functionality.
+`event_t` is an events implementation built on top of a condition variable and a mutex. Provides an abstraction for using both, and some utilities for managing threads waiting on that event, and also configurations to modify the actions taken while operating under the event. This event is similar to Win32's events, in that it supports flags to allow similar functionality.
 
-event_t allows you to wait on events, and supports flags which allow you to set the default state, whether or not to signal the event after a timeout, and whether or not to auto-reset the event after a thread exits the event, or after the last waiting thread leaves. 
+`event_t` allows you to wait on events, and supports flags which allow you to set the default state, whether or not to signal the event after a timeout, and whether or not to auto-reset the event after a thread exits the event, or after the last waiting thread leaves. 
 
-event_t also will wait for other threads to finish before destruction (although it is better used with a reference count if that becomes a problem).
+`event_t` also will wait for other threads to finish before destruction (although it is better used with a reference count if that becomes a problem).
 
 <aside class="warning">
 Extra special care must be taken if reference counting is not being used. Although the event will not be destroyed until ALL threads inside of the event exit, any threads attempting to access it afterwards will invoke undefined behavior. Hence, you need some external way to notify threads that the event is dead.
 </aside>
 
-##Event Loop
-
->Below is a rather extensive example of how a dispatch for the event loop would look for a server that reads data from a client, formulates it into an HTTP request, and formulates their own HTTP response. Quite a few things are left out, but it should get the point across.
-
-~~~c
-event_flags_e dispatch(void *usr_data, int fd, int flags) {
-  char buf[BUFSIZ];
-  string_buffer_t *buf = usr_data;
-
-  if(flags & EVENT_FLAGS_READ) {
-    int bytes = read(fd, buf, BUFSIZ);
-    if(!bytes)
-      return EVENT_FLAGS_READ_DONE;
-
-    STRING_BUFFER_APPEND_FORMAT(".*s", buf, bytes);
-
-    // We re-enable polling for write here if it has been disabled elsewhere.
-    return EVENT_FLAGS_WRITE;
-  }
-
-  if(flags & EVENT_FLAGS_WRITE) {
-    char *str = string_buffer_take(buf);
-    /*
-      We have to wait until we can READ first, so we opt out of receiving events for write unless we have some data in our buffer. More efficient this way.
-    */
-    if(!str)
-      return EVENT_FLAGS_WRITE_DONE;
-
-    /*
-      Treat what we read as an HTTP request, and formulate a response here.
-    */
-    response_t *res = create_response_from_request_str(str);
-    char *res_str = response_to_string(res);
-    int bytes = write(fd, res_str, strlen(res_str));
-    if(bytes != strlen(res_str))
-      handle_excess_data(res_str + bytes);
-
-    return EVENT_FLAGS_NONE; // or return 0;
-  }
-}
-~~~
-
->Create event sources, with the extensive configuration objects
-
-~~~c
-event_source_conf_t conf = 
-{
-  .user_data = str_buf,
-  .logger = my_logger,
-  .callbacks.finalizer = string_buffer_destroy,
-  .flags = EVENT_SOURCE_RC_INSTANCE
-};
-
-event_source_t *source = event_source_create_conf(int fd, dispatch, &conf);
-~~~
-
->Create a local event using pipes; the event loop polls on the reader file descriptor, and the user writes to the writer file descriptor
-
-~~~c
-int write_fd;
-event_source_t *source;
-EVENT_SOURCE_LOCAL_CONF(source, write_fd, local_dispatcher, &conf);
-~~~
-
->Create an event for asynchronously reading a FILE.
-
-~~~c
-FILE *fp;
-event_source_t *source;
-EVENT_SOURCE_FILE_CONF(source, fp, async_file_reader, &conf);
-~~~
-
->Create a timer event
-
-~~~c
-// Milliseconds.
-int timeout = 5000;
-event_source_t *source = event_source_create_timed_conf(timeout, timed_dispatch, &conf);
-~~~
-
->Finally, create the loop add these sources!
-
-~~~c
-event_loop_t *loop = event_loop_create();
-event_loop_add(source);
-~~~
-
-event_loop_t is a callback-based event loop which dispatches events once the file descriptors associated with them are ready. event_source_t objects can be created to configure their specific behavior, such as the functions used to dispatch once ready, the user_data to pass to each dispatch function, and how to finalize the data once finished, if applicable.
-
-The event_source_t objects can also be created through their useful helper constructors and macros to allow for easier setting up of events. Dispatcher functions can return flags which help to notify the event_loop_t what to poll for when using that file descriptor, hence allowing dynamic and responsive events when done correctly.
-
-<aside class="notice">
-Dispatch functions SHOULD be short and should NOT ever block. That is, one should NOT poll for data from one file descriptor and write to another as they could potentially block. Instead, local event_source_t objects can help act as a medium between reading, writing to a buffer, then writing the contents of that buffer to another file descriptor once ready. That, or reading all into a buffer, then waiting until they have finished, and THEN submit the buffer as a new event to be written.
-</aside>
-
-The event_source_t objects, when reference counted, are extremely useful, as they can then be have their reference stolen by the event_loop_t and have it handle destruction of the event once it finishes, as well as finalizing the data.
-
-The main benefit of using an event_loop over a thread pool is that, one, it uses less resources and is more efficient when you need to involve multiple threads, and as well there is no need to worry about synchornization as things occur sequentially  if everything is handled by the event_loop. 
-
 #Memory Management
 
 This library features useful tools and abstractions which will not only help with memory management, but also improve overall efficiency.
 
-##Hazard Pointers [<b>Unstable</b>]
+Library | Version | Status
+:------- | :-------: | ------:
+Hazard Pointers | .5 | Unstable
+Reference Counting | 0.75 | Unstable
+Object Pool | N/A | Unimplemented
+
+##Hazard Pointers
 
 >Creating the hazard pointer
 
@@ -631,7 +536,9 @@ Do NOT attempt to manipulate the data AFTER there are no longer any references t
 
 On a side note, there are some checks in place to help ensure the appropriate use. For example, if you attempt to `REF_INC`, `REF_DEC`, or `REF_CLEAR` the data after it has been destroyed OR data never allocated by this library, chances are it will fail a check and you will be able to see why it failed.
 
-Almost every library in this package support reference counting in some way, and make it easier to manage them. If they support reference counting, they can optionally be destroyed by calling `REF_DEC` instead of their custom destructors.
+<aside class="notice">
+Almost every library in this package support reference counting in some way, and make it easier to manage them. If they support reference counting, they can optionally be destroyed by calling REF_DEC instead of their custom destructors.
+</aside>
 
 ##Object Pool
 
@@ -675,111 +582,139 @@ object_pool_release(pool, dat);
 object_pool_destroy(pool);
 ~~~
 
-object_pool_t acts as a memory pool, which memory submitted can safely be recycled for next use. By assigning callbacks, such as destructor and constructor, one can easily have the memory pool destroy data as they are no longer needed, or create new ones when they are. Callbacks such as prepare and finished, prepare allows you to prepare data to be recycled and used, and finished allow you to configure its state so that it may be recycled. Hence, data prepared may be configured for immediate use, while finished may relinquish resources without actually destroying the data.
+`object_pool_t` acts as a memory pool, which memory submitted can safely be recycled for next use. By assigning callbacks, such as destructor and constructor, one can easily have the memory pool destroy data as they are no longer needed, or create new ones when they are. Callbacks such as prepare and finished, prepare allows you to prepare data to be recycled and used, and finished allow you to configure its state so that it may be recycled. Hence, data prepared may be configured for immediate use, while finished may relinquish resources without actually destroying the data.
 
-destroy_timer allows the pool to be asynchronously managed by a global instance of an event_loop. This feature is optional, but can help manage shrinkage of the pool.
+`destroy_timer` allows the pool to be asynchronously managed by a global instance of an `event_loop_t`. This feature is optional, but can help manage shrinkage of the pool.
 
-<notice class="notice">
-The object_pool can be managed asynchronously if the appropriate flags are used. The asynchronousity is used by a global event_loop instance. Hence, if you want the pool to shrink after a certain time has passed since the object has last been used, it will do so.
-</notice>
+<aside class="notice">
+The object_pool can be managed asynchronously if the appropriate flags are used. The asynchronousity is used by a global event_loop_t instance. Hence, if you want the pool to shrink after a certain time has passed since the object has last been used, it will do so.
+</aside>
 
 #String
 
-Supplies basic string manipulations that are intuitive and easy to use.
+Useful abstractions for C-Strings.
 
-##String Manipulations [<b>Stable</b>] Version: 2.1
+Library | Version | Status
+:------- | :-------: | ------:
+String Manipulations | 1.3 | Stable
+String Buffer | 0.75 | Unstable
+Regular Expressions | N/A | Unimplemented
 
-```c
+##String Manipulations
 
-/*
-    The below demonstrates the ease of use of declaring a string with the
-    typedef provided. Alternatively, you can declare it as char *str, which
-    can be used interchangeably.
-*/
-string str = "Hello World";
-
-/*
-    The below demonstrates the memory management of strings being handled by
-    the compiler, automatically being destroyed when it leaves the scope of the
-    block of code.
-*/
-string TEMP str = strdup("Hello World");
-
-/*
-    Now, on to the actual functions of this string manipulation library.
-    First, we will attempt to reverse a portion of the string, str, declared
-    above. We only wish to reverse "World" however, so we will make use of
-    pointer arithmetic to get the offset of the string. We want to reverse
-    everything after after "Hello ", so we pass 0 as the length to specify
-    that it is null terminated and that strlen can be used.
-*/
-string_reverse(str + 6, 0);
-
-/*
-    Now, for the next example, imagine we have a fixed amount, but a somewhat
-    large amount of strings to concatenate together, and you not only wish to
-    concatenate them together, but also apply some kind of delimiter. For
-    instance, SU_String_split can split an array into an array of strings
-    based on a delimiter, and you wish to join them together with a new
-    delimiter. While SU_String_replace can do the job just as well (better),
-    lets assume you actually modify the array of strings somehow. You have
-    two options here, either SU_String_join, which is easier, but you need to
-    pass an array, but what if you wish to append a new string, then you have
-    resize the array (if it's not constant), or create an entirely new one.
-    Instead, SU_STRING_CONCAT_ALL allows you to concatenate any number of
-    strings with an optional delimiter.
-*/
-string storage;
-STRING_CONCAT_ALL(&storage, ",", str, "How are you today", "Good I hope", "Good day!");
-
-/*
-    The other functions are rather straight forward, however to go more into 
-    STRING_CONCAT_ALL, notice you do not need to add a NULL dummy parameter
-    or specify the size. That's because the preprocessor can determine it for
-    you, which it does.
-*/
-```
-
-A basic, yet very powerful and conventional string manipulations library. Supports ASCII strings only, and some functions support the use of non NULL-terminated functions.
-
-From simple string reversal or splitting and joining a string based on a delimiter, or even dynamic concatenation of strings, is all included in this library. This library fixes and improves upon the standard libc and glibc library by adding functionality that is sorely missing, in an efficient manner.
-
-There is also a convenience typedef for cstrings, String, which abstracts the need to use pointers. Lastly, there is a convenience macro that can be used to handle memory management of non-constant strings, TEMP, which utilitizes the GCC or Clang's compiler attributes.
-
-##String Buffer [<b>In Development</b>]
+>Typedef abstraction for cstrings
 
 ~~~c
-
-// Allocate with initial value with no synchronization
-string_buffer_t *str_buf = string_buffer_create("Hello World", false);
-
-// Append strings
-string_buffer_append(str_buf, ", I am ");
-
-// Append numbers
-STRING_BUFFER_APPEND(str_buf, 22);
-
-// But wait, there's a better way to do this...
-string_buffer_clear(str_buf);
-
-// Lets append all from one macro!
-STRING_BUFFER_APPEND_FORMAT(str_buf, "Hello World, I am %d years old!", 22);
-
-// Now lets delete Hello World
-string_buffer_delete(str_buf, 0, 12);
-
-// And remove the "old!" part
-string_buffer_delete(str_buf, STRING_BUFFER_END - 3, STRING_BUFFER_END);
-
-// And retrieve so we can display it.
-char *str = string_buffer_get(str_buf);
-puts(str);
-
+string str = "Hello World";
 ~~~
 
-Abstracts away the need to manually allocate strings and do tedious string manipulations. The string_buffer automatically manages resizing itself and shrinking when needed. It features a generic macro (requires C11 _Generic keyword) to automatically append, prepend or insert any of the standard types. It is also optionally thread-safe.
+>Can be used with non-null terminated strings
 
-The string_buffer supports an option to enable synchronizaiton, which is done through a spinlock. Majority of cases do not require synchronization, however if ever you have a case where you require one, for say a producer-consumer relationship, it can be enabled easily. 
+~~~c
+/*
+  If length passed is 0, it will use strlen, otherwise it will do so up to the passed length. This is useful for allowing manipulations of substrings within a string itself, or for general non-null terminated strings.
+*/
+string_reverse(str + 6, 0);
+~~~
+
+>Concatenate multiple strings (no sentinel needed)
+
+~~~c
+// Result stored in storage.
+string storage;
+STRING_CONCAT_ALL(&storage, ",", str, "How are you today", "Good I hope", "Good day!");
+~~~
+
+>Ease memory management of temporary strings
+
+~~~c
+// Gets cleaned up once it leaves it's scope automatically.
+string TEMP str = strdup("Hello World");
+~~~
+
+This library provides basic but much needed string abstractions for working with raw cstrings, even providing a typedef to abstract the usage of `char *`'s. It also can work on non-null terminated strings by passing the length yourself, or leaving it to be determined in advance with `strlen`.
+
+<aside class="warning">
+The string MUST be null terminated if you leave the length argument as 0. Otherwise it will result in undefined behavior.
+</aside>
+
+The `TEMP` macro-keyword, allows you to easily manage the lifetime of temporary strings without having to free them yourself, by having them cleaned up for you once they leave scope.
+
+<aside class="warning">
+Note that the variable must point to the string itself. Also note that this should NOT be used with string literals, as this will result in a segmentation fault/undefined behavior.
+</aside>
+
+##String Buffer
+
+>Creating a string buffer
+
+~~~c
+string_buffer_conf_t conf =
+{
+  .logger = logger,
+  .synchronized = true,
+  .to_string = obj_to_str
+};
+
+string_buffer_t *buf = string_buffer_create_conf("Hello World", &conf);
+~~~
+
+>Append a normal cstring
+
+~~~c
+string_buffer_append(str_buf, ", I am ");
+~~~
+
+>Or, ANY type...
+
+~~~c
+// integers
+STRING_BUFFER_APPEND(str_buf, 22);
+
+// doubles
+STRING_BUFFER_APPEND(str_buf, 2.3);
+
+// Custom objects
+struct obj *o;
+STRING_BUFFER_APPEND(str_buf, o);
+~~~
+
+>Clear the string buffer
+
+~~~c
+string_buffer_clear(str_buf);
+~~~
+
+>Append with printf-like format
+
+~~~c
+STRING_BUFFER_APPEND_FORMAT(str_buf, "Hello World, I am %d years old!", 22);
+~~~
+
+>Delete from the beginning...
+
+~~~c
+// Now lets delete Hello World
+string_buffer_delete(str_buf, 0, 12);
+~~~
+
+>Or from the end...
+
+~~~c
+// And remove the "old!" part
+string_buffer_delete(str_buf, STRING_BUFFER_END - 3, STRING_BUFFER_END);
+~~~
+
+>Get underlying string
+
+~~~c
+char *str = string_buffer_get(str_buf);
+puts(str);
+~~~
+
+`string_buffer_t` abstracts away the need to manually allocate strings and do tedious string manipulations. The string_buffer automatically manages resizing itself and shrinking when needed. It features a generic macro (requires C11 `_Generic` keyword) to automatically append, prepend or insert any of the standard types. It is also optionally thread-safe.
+
+`string_buffer_t` supports an option to enable synchronizaiton, which is done through a spinlock. Majority of cases do not require synchronization, however if ever you have a case where you require one, for say a producer-consumer relationship, it can be enabled easily.
 
 ##Regular Expressions [<b>Unimplemented</b>]
 
@@ -792,32 +727,47 @@ The string_buffer supports an option to enable synchronizaiton, which is done th
 
 #I/O
 
+Library | Version | Status
+:------- | :-------: | ------:
+Logger | 1.5 | Stable
+Event Loop | 0.75 | Unstable
+File Buffering | N/A | Unimplemented
+Streams | N/A | Unimplemented
+
 Brings useful abstractions when dealing with streams through file descriptors. Buffering (I.E line-by-line), to asynchronous reading/writing without needing to worry if it is a FILE or socket file descriptor. Also features a configurable logging utility.
 
-###Logger [<b>Stable</b>] Version: 1.5
+##Logger
 
-```c
+>Create a logger
 
-/*
-    Instantiation
-*/
-static logger_t *logger;
-LOGGER_AUTO_CREATE(logger, "Test_File.txt", "w", LOG_LEVEL_ALL);
+~~~c
+char *name= "Test_File.txt";
+char *mode = "w";
+log_level_e lvl = LOG_LEVEL_ALL;
+logger_t *logger = logger_create(name, mode, lvl);
+~~~
 
-/*
-    Usage
-*/
+>Automatically create and destroy
+
+~~~c
+LOGGER_AUTO_CREATE(logger, name, mode, lvl);
+~~~
+
+>Log different types of messages
+
+~~~c
 LOG_INFO(logger, "Hello %s", "World");
 DEBUG("Hello World");
 ASSERT(1 == 0, logger, "1 != 0!");
+~~~
 
-```
+`logger_t` is a minimal logging utility with support for level-based logging, and even creating your own custom log level. As well, the user may define their own custom format. This allows the user to determine what information they want to see, and what they do not. All libraries inside of the library support logging, and will log to the passed logger, allowing the user to easily inject their own loggers to debug and trace information.
 
-A minimal logging utility which supports logging based on log levels, with it's own custom formatting. Also supports a custom log level with custom log label for formatting. Supports the usage of the __constructro__ and __destructor__ compiler attributes (available with Clang and GCC) to automatically manage the lifetime of the logger, through the LOGGER_AUTO_CREATE macro.
+`logger_t` can be created through `LOGGER_AUTO_CREATE`, which works by using the clang and gcc compiler attributes, `__constructor__` and `__destructor__`, to automatically handle creation and destruction based on linkage.
 
 Below is an example of a custom format. This is the default logging format used when no custom format has been provided.
 
-"%tsm \[%lvl\](%fle:%lno) %fnc(): \n\"%msg\"\n"
+`"%tsm \[%lvl\](%fle:%lno) %fnc(): \n\"%msg\"\n"`
 
 Would produce the following:
 
@@ -826,37 +776,114 @@ Would produce the following:
 
 The currently implemented log format tokens are...
 
-%tsm: Timestamp (HH/MM/SS AM/PM)
-%lvl: Log Level
-%fle: File
-%lno: Line Number
-%fnc: Function
-%msg: Message
-%cond: Condition (Used for assertions)
+Tokens | Format
+:----- | -----:
+%tsm | Timestamp (HH/MM/SS AM/PM)
+%lvl | Log Level
+%fle | File
+%lno | Line Number
+%fnc | Function
+%msg | Message
+%cond | Condition (Used for assertions)
 
-###Planned Features
+##Event Loop
 
-* Configuration File support
-* Logging to a set of loggers rather than just one
-    - Allows a group of loggers with different log levels to be logged to
-    - Allows late registration and unregistration for injection
-* More Log Format Tokens
+>Below is a rather extensive example of how a dispatch for the event loop would look for a server that reads data from a client, formulates it into an HTTP request, and formulates their own HTTP response. Quite a few things are left out, but it should get the point across.
 
-##Event Polling [<b>Unimplemented</b>]
+~~~c
+event_flags_e dispatch(void *usr_data, int fd, int flags) {
+  char buf[BUFSIZ];
+  string_buffer_t *buf = usr_data;
 
-###Planned
+  if(flags & EVENT_FLAGS_READ) {
+    int bytes = read(fd, buf, BUFSIZ);
+    if(!bytes)
+      return EVENT_FLAGS_READ_DONE;
 
-* Create event_sources from file descriptors
-    - Use local sockets to emit local events
-    - Monitor non-local sockets
-    - Asynchronously read files
-* event_sources allows for registering callbacks to handle events
-    - Passes the userpassed data and the file descriptor
-    - Allows for asynchronous handling of events.
-* event_poller(?) created in another thread which manages itself
-    - Handles event_sources submitted
-* Goal
-    - Allow for truely easy and effortless asynchronicity.
+    STRING_BUFFER_APPEND_FORMAT(".*s", buf, bytes);
+
+    // We re-enable polling for write here if it has been disabled elsewhere.
+    return EVENT_FLAGS_WRITE;
+  }
+
+  if(flags & EVENT_FLAGS_WRITE) {
+    char *str = string_buffer_take(buf);
+    /*
+      We have to wait until we can READ first, so we opt out of receiving events for write unless we have some data in our buffer. More efficient this way.
+    */
+    if(!str)
+      return EVENT_FLAGS_WRITE_DONE;
+
+    /*
+      Treat what we read as an HTTP request, and formulate a response here.
+    */
+    response_t *res = create_response_from_request_str(str);
+    char *res_str = response_to_string(res);
+    int bytes = write(fd, res_str, strlen(res_str));
+    if(bytes != strlen(res_str))
+      handle_excess_data(res_str + bytes);
+
+    return EVENT_FLAGS_NONE; // or return 0;
+  }
+}
+~~~
+
+>Create event sources, with the extensive configuration objects
+
+~~~c
+event_source_conf_t conf = 
+{
+  .user_data = str_buf,
+  .logger = my_logger,
+  .callbacks.finalizer = string_buffer_destroy,
+  .flags = EVENT_SOURCE_RC_INSTANCE
+};
+
+event_source_t *source = event_source_create_conf(int fd, dispatch, &conf);
+~~~
+
+>Create a local event using pipes; the event loop polls on the reader file descriptor, and the user writes to the writer file descriptor
+
+~~~c
+int write_fd;
+event_source_t *source;
+EVENT_SOURCE_LOCAL_CONF(source, write_fd, local_dispatcher, &conf);
+~~~
+
+>Create an event for asynchronously reading a FILE.
+
+~~~c
+FILE *fp;
+event_source_t *source;
+EVENT_SOURCE_FILE_CONF(source, fp, async_file_reader, &conf);
+~~~
+
+>Create a timer event
+
+~~~c
+// Milliseconds.
+int timeout = 5000;
+event_source_t *source = event_source_create_timed_conf(timeout, timed_dispatch, &conf);
+~~~
+
+>Finally, create the loop add these sources!
+
+~~~c
+event_loop_t *loop = event_loop_create();
+event_loop_add(source);
+~~~
+
+event_loop_t is a callback-based event loop which dispatches events once the file descriptors associated with them are ready. event_source_t objects can be created to configure their specific behavior, such as the functions used to dispatch once ready, the user_data to pass to each dispatch function, and how to finalize the data once finished, if applicable.
+
+The event_source_t objects can also be created through their useful helper constructors and macros to allow for easier setting up of events. Dispatcher functions can return flags which help to notify the event_loop_t what to poll for when using that file descriptor, hence allowing dynamic and responsive events when done correctly.
+
+<aside class="notice">
+Dispatch functions SHOULD be short and should NOT ever block. That is, one should NOT poll for data from one file descriptor and write to another as they could potentially block. Instead, local event_source_t objects can help act as a medium between reading, writing to a buffer, then writing the contents of that buffer to another file descriptor once ready. That, or reading all into a buffer, then waiting until they have finished, and THEN submit the buffer as a new event to be written.
+</aside>
+
+The event_source_t objects, when reference counted, are extremely useful, as they can then be have their reference stolen by the event_loop_t and have it handle destruction of the event once it finishes, as well as finalizing the data.
+
+The main benefit of using an event_loop over a thread pool is that, one, it uses less resources and is more efficient when you need to involve multiple threads, and as well there is no need to worry about synchornization as things occur sequentially  if everything is handled by the event_loop. 
 
 ##File Buffering [<b>Unimplemented</b>]
 
