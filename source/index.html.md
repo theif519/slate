@@ -2,19 +2,16 @@
 
 Welcome to C_Utils, the Utilities Package for the C Programming Language. Below you will find what the package has to offer, and see just how configurable and versatile it really is.
 
-#Notes
-
 ##Development Stages
 
-[<b>Unimplemented</b>] - Planned to be implemented at a later date.
-
-[<b>In Development</b>] - Work in progress.
-
-[<b>Unstable</b>] - Mostly implemented, but not fully tested.
-
-[<b>Stable</b>] - Fully implemented and fully tested, usable unless a new feature is added or a bug is found.
-
-[<b>Finished</b>] - Stable and production-ready, and much less likely to change (except for occasional bug fixes)
+Stage | Description
+:---- | ----------:
+Unimplemented | Development has not yet begun, however it will in the future.
+DEPRECATED | The library is to be removed at a later date and should not be used.
+In Development | The library is currently in development and not ready for public use.
+Unstable | The library is in it's late development stages, however is not production-ready; further testing needed.
+Stable | The library is mostly finished development and has been tested; further testing needed before production-ready
+Finished | The library is finished development and has been extensively tested; it is production ready.
 
 ##Artificial Namespace patterns
 
@@ -354,7 +351,7 @@ Library provides helper macros for...
 
 To give an example of it's usefulness, you have to imagine a scenario where you do not want to lock due to some changes at runtime, for example, a list may utilize a lock, but, if there is only one thread, it is wasting time by acquiring and releasing the lock. This is the way to do so in the case that you do not want to use the scoped_lock_t objects and want to have manual control over when you lock and unlock.
 
-It also extremely useful for debugging EDEADLK and where they occur.
+It also extremely useful for debugging `EDEADLK` and where they occur.
 
 ##Events
 
@@ -873,17 +870,17 @@ event_loop_t *loop = event_loop_create();
 event_loop_add(source);
 ~~~
 
-event_loop_t is a callback-based event loop which dispatches events once the file descriptors associated with them are ready. event_source_t objects can be created to configure their specific behavior, such as the functions used to dispatch once ready, the user_data to pass to each dispatch function, and how to finalize the data once finished, if applicable.
+`event_loop_t` is a callback-based event loop which dispatches events once the file descriptors associated with them are ready. `event_source_t` objects can be created to configure their specific behavior, such as the functions used to dispatch once ready, the user_data to pass to each dispatch function, and how to finalize the data once finished, if applicable.
 
-The event_source_t objects can also be created through their useful helper constructors and macros to allow for easier setting up of events. Dispatcher functions can return flags which help to notify the event_loop_t what to poll for when using that file descriptor, hence allowing dynamic and responsive events when done correctly.
+The `event_source_t` objects can also be created through their useful helper constructors and macros to allow for easier setting up of events. Dispatcher functions can return flags which help to notify the `event_loop_t` what to poll for when using that file descriptor, hence allowing dynamic and responsive events when done correctly.
 
 <aside class="notice">
 Dispatch functions SHOULD be short and should NOT ever block. That is, one should NOT poll for data from one file descriptor and write to another as they could potentially block. Instead, local event_source_t objects can help act as a medium between reading, writing to a buffer, then writing the contents of that buffer to another file descriptor once ready. That, or reading all into a buffer, then waiting until they have finished, and THEN submit the buffer as a new event to be written.
 </aside>
 
-The event_source_t objects, when reference counted, are extremely useful, as they can then be have their reference stolen by the event_loop_t and have it handle destruction of the event once it finishes, as well as finalizing the data.
+The `event_source_t` objects, when reference counted, are extremely useful, as they can then be have their reference stolen by the `event_loop_t` and have it handle destruction of the event once it finishes, as well as finalizing the data.
 
-The main benefit of using an event_loop over a thread pool is that, one, it uses less resources and is more efficient when you need to involve multiple threads, and as well there is no need to worry about synchornization as things occur sequentially  if everything is handled by the event_loop. 
+The main benefit of using an `event_loop_t` over a thread pool is that, one, it uses less resources and is more efficient when you need to involve multiple threads, and as well there is no need to worry about synchornization as things occur sequentially  if everything is handled by the `event_loop_t`. 
 
 ##File Buffering [<b>Unimplemented</b>]
 
@@ -908,86 +905,86 @@ The main benefit of using an event_loop over a thread pool is that, one, it uses
 
 #Networking
 
-Provides basic networking utilities which allow a developer with almost no experience with sockets to manage connections, send/receive data, etc. Also features two managers and recycling pools for connections, allowing for efficient use.
+Provides basic, but extremely powerful networking abstractions to help make using sockets less of a headache.
 
-##Connection [<b>Stable</b>] Version: 1.1
+Library | Version | Status
+:------- | :-------: | ------:
+Socket Utilities | N/A | Unimplemented
+HTTP | 0.5 | Unstable
+Connections | 1.0 | DEPRECATED
+Server | 1.0 | DEPRECATED
+Client | 1.0 | DEPRECATED
 
-```c
+##Socket Utilities
 
-/// Unlike normal bsd socket functions, my abstractions provide a timeout.
-const int timeout = 60;
-/// The flags to be passed to send().
-const int send_flags = 0;
-/// The flags to be passed to recv().
-const int recv_flags = 0;
+>Connect to an endpoint... Synchronously
 
-connection_t *conn;
-/// Assume it's been setup and configured and already.
+~~~c
+char *ip_addr = "192.168.1.2";
+unsigned int port = 8000;
+// Milliseconds
+long long timeout = 5000;
+int sfd = socket_connect(ip_addr, port, timeout);
+~~~
+
+>Or Asynchronously
+
+~~~c
+socket_connect_async(ip_addr, port, timeout, on_connect, on_failure);
+~~~
+
+>Become an endpoint
+
+~~~c
+unsigned int backlog = 10;
+int bound_fd = socket_host(port, backlog);
+~~~
+
+>Accept new connections... Synchronously
+
+~~~c
+// -1 == infinite timeout.
+long long timeout = -1;
+int conn_fd = socket_accept(bound_fd, timeout);
+~~~
+
+>Or asynchronously
+
+~~~c
+socket_accept_async(bound_fd, timeout, on_accept, on_failure);
+~~~
+
+>Timedout operations... Synchronous
+
+~~~c
 char buf[BUFSIZ];
+int read = socket_read(conn_fd, buf, BUFSIZ, timeout);
 
-size_t bytes_sent = connection_send(conn, buf, BUFSIZ, timeout, send_flags);
-assert(bytes_sent);
+int written = socekt_read(conn_fd, buf, read, timeout);
+~~~
 
-// Simple error checking, assertions are easy for small programs.
-size_t bytes_received = connection_receive(conn, buf, BUFSIZ, timeout, recv_flags);
-assert(bytes_sent);
+>Asynchronous
 
-printf("%.*s", (int)bytes_received, buf);
+~~~c
+char *buf = malloc(BUFSIZ);
+socket_read_async(conn_fd, buf, BUFSIZ, on_read, on_failure);
 
-```
+socket_write(conn_fd, buf, buf_size, on_write, on_failure);
+~~~
 
-connection is the base file for all transactions on sockets and between endpoints. It contains all sending and receiving functions and logs everything. It can be created manually through connection_create() and connection_init() but it's best created through the abstractions, server and client. 
+Provides a minimalistic and easy to use API abstraction that allows for easy and effortless management and creation of connections. Both synchronous and asynchronous operations are supported, however the asynchronous operations utilize the global `event_loop_t`. 
 
-##Server [<b>Stable</b>] Version: 1.0
+The synchronous differ over normal read and write by offering timeout operations for anything that could block. The asynchronous versions allow the user to easily manage multiple asynchronous sockets without having to poll on it themselves. 
 
-```c
+<aside class="warning">
+You MUST NOT block inside of the asynchronous handlers, as they WILL stall the event_loop_t instance, causing all operations to slow down. If you NEED to block, use a thread_pool_t instead and handle asynchronicity yourself.
+</aside>
 
-/// The initial connection pool size
-const int connection_pool = 10;
-/// The initial bound socket pool size.
-const int bound_socket_pool = 4;
-/// Whether or not locks are initialized. 0 for single-threaded or care multithreading.
-const int is_threaded = 1;
-/// The IP address to bind to. If it is NULL, it is bound INADDR_ANY
-const char *ip_addr = "127.0.0.1";
-/// Port to bind to.
-const unsigned int port = 8000;
-/// Unlike normal bsd socket functions, my abstractions provide a timeout.
-const int timeout = 60;
+<aside class="success">
+When asynchronocity is used correctly, one can abstract the need to use event_loop_t directly yourself.
+</aside>
 
-server_t *server = server_create(connection_pool, bound_socket_pool, is_threaded);
-/// connection_pool used as backlog too.
-socket_t *bsock = server_bind(server, connection_pool, port, ip_addr);
-connection_t *conn = server_accept(server, bsock, timeout);
-
-```
-
-
-The philosophy of the server is that it acts as a manager for connection objects, which are completely configured and connected to a client. The server also manages a resource and recycling pool of connection objects as well for after you disconnect them. The server also allows you to manage multiple bindings of ports.
-
-##Client [<b>Stable</b>] Version: 1.0
-
-```c
-
-/// The initial connection pool size
-const int connection_pool = 10;
-/// Whether or not locks are initialized. 0 for single-threaded or care multithreading.
-const int is_threaded = 1;
-/// The host's IP Address.
-const char *ip_addr = "127.0.0.1";
-/// Port to bind to.
-const unsigned int port = 8000;
-/// Unlike normal bsd socket functions, my abstractions provide a timeout.
-const int timeout = 60;
-
-client_t *client = client_create(connection_pool, is_threaded);
-connection_t *conn = client_connect(client, ip_addr, port, timeout);
-
-```
-
-The philosophy of client follows server, in that it acts as a manager for connection objects, completely configured and initialized. Unlike the client, obviously, there is no need to bind to a port or create a bound socket type object.
-
-##HTTP [<b>Unstable</b>] Version 0.5
+##HTTP
 
 ```c
 
