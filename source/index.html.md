@@ -986,106 +986,219 @@ When asynchronocity is used correctly, one can abstract the need to use event_lo
 
 ##HTTP
 
-```c
+>Create an HTTP generic header
 
-/// Assume header gets filled out by some request.
-char header[BUFSIZ];
-size_t request_size;
-request_t *req = request_create();
-request_append_header(req, header, &request_size);
-FILE *file = fopen(req->path, "r");
-response_t *res = response_create();
-/*
-    Note that it takes a rather elegant looking key-value pair, in the guise
-    of a struct with two char * members. What the macro does, in gist, is
-    that it takes (field_t) { x, y }, into { x, y } by converting it for you.
-    Hence (field_t) { "Content-Length", file_size } becomes a much better:
-    { "Content-Length", file_size }.
-*/
-RESPONSE_WRITE(res, status, HTTP_VER_1_0,
- { "Content-Length", get_page_size(file) },
- { "Content-Type", content_type }
- );
-char *response = response_to_string(res);
+~~~c
+header_t *header = header_create();
+~~~
 
-```
+>Or generate from an HTTP header (request or response)
 
-http is a simple yet minimal parsing, and generating, HTTP library. It allows you to parse HTTP requests and responses, as well generate your own by setting fields, resposne statuses, etc. by the use of it's API.
+~~~c
+int fd;
+char header_str[BUFSIZ];
+int header_size = read(fd, header_str, BUFSIZ);
+// Returns offset after the actual header.
+header_t *header = header_from(header_str, &header_size);
+~~~
 
-http is split between two objects: response_t and request_t, both of which take a buffer, not having to be NULL-terimainted, and returns what's left in the buffer after it parses out the rest. Hence, if you pass both the HTTP header and the message body, it will return the offset (note here) of where the message body begins. It allows you to check if a field is set by using a hash table of it's field-value pairs, file path, response status, HTTP version, etc. 
+>Obtain mapped field-value
 
-It's rather simple and elegant (in the creator's biased opinion).
+~~~c
+// Or "Content-Length"
+char *len = header_get(header, HTTP_CONTENT_LENGTH);
+// Or "User-Agent"
+char *ua = header_get(header, HTTP_USER_AGENT);
+~~~
+
+>Set header field values.
+
+~~~c
+size_t len;
+char *len_str;
+asprintf(&len_str, "%zu", len);
+
+header_set(header, HTTP_CONTENT_LENGTH, len_str);
+~~~
+
+>Set mass header fields
+
+~~~c
+HEADER_WRITE(header, 
+    { 
+        { HTTP_CONTENT_LENGTH, len_str },
+        { HTTP_CONTENT_TYPE, content_type },
+        { HTTP_VERSION, HTTP_VERSION_1_0 },
+        { HTTP_STATUS, HTTP_STATUS_400 }
+    }
+);
+~~~
+
+>Obtain type of header
+
+~~~c
+header_type_e type = header_type(header);
+if(type != HTTP_TYPE_REQUEST)
+    handle_bad_header(header);
+~~~
+
+>Generate header
+
+~~~c
+size_t len;
+char *res = header_generate(header, &len);
+~~~
+
+`header_t` contains some very minimal and basic HTTP mapping, where it can determine what type of HTTP header has been sent (Response vs Request) and can be used to generate an HTTP header as well. It can be constructed either from a pre-existing HTTP string header, or from scratch. 
+
+`header_t` can be used when you require a basic HTTP header handling/parsing tool.
+
+<aside class='notice'>
+To generate a header from a string, keep in mind that the pointer to the length must maintain the size, and it will return the offset after the header (I.E, where the message body begins).
+</aside>
 
 #Data Structures
 
+An assortment of data structures, all of which are highly configurable, thread-safe, and support reference counting. Some provide iterator implementations that are thread-safe and highly concurrent when used right.
+
 ##Iterator [<b>In Development</b>] Version: 0.5
 
-```c
+>Create an iterator from a list
 
-/*
-    Imagine that the below data structures are initialized already, containing strings.
-*/
-list_t *list;
-vector_t *vec;
-map_t *map;
+~~~c
+iterator_t *it = list_iterator(list);
+~~~
 
-/*
-    Obtain the iterator of each in an array of iterators, like below.
-*/
-iterator_t *it[] = { 
-    list_iterator(list), 
-    vector_iterator(vec), 
-    map_iterator(map) 
+>Create a scoped-based iterator
+
+~~~c
+AUTO_ITERATOR *it = list_iterator(list);
+~~~
+
+>For-Each iterator
+
+~~~c
+void *item;
+// General Iterator For-Each
+ITERATOR_FOR_EACH(item, it)
+    do_something_with(item);
+
+// Helper Macro for List
+LIST_FOR_EACH(item, list) {
+    do_something();
+    do_something_with(item);
+    print_item(item);
+    if(bad_item(item))
+        continue;
+
+    iterator_remove(_this_iterator);
+}
+~~~
+
+>Iterate manually
+
+~~~c
+void *item;
+while(item = iterator_next(it))
+    do_something_with(item);
+
+while(item = iterator_prev(it))
+    do_something_else_with(item);
+~~~
+
+`iterator_t` is a callback-based (ergo implementation-specific) iterator, which in this library, makes concurrent iterations easy across multiple threads. `iterator_t` will also maintain a reference count to the underlying data structure if the data structure itself is reference counted (implementation specific). The iterator may maintain a reference to the items it currently is iterating over to ensure that the current user can always safely use this iterator, if and only if the data structure it was created from was configured to do so.
+
+<aside class='warning'>
+While the reference counting can prevent any such memory leaks or undefined behavior (freeing while in use) from occuring through concurrent access, improper management of the iterator, I.E keeping it around long than it should, will leak not only the current item it is on, but also the data structure as well. If a scoped-based iterator is needed, use the AUTO_ITERATOR macro.
+</aside>
+
+`iterator_t` in the scope of this utilities package is a highly concurrent and easy-to-use iterator for a data structure. Memory management is made easier through reference counted, and concurrent access is generally enforced through reader-writer locks. Concurrent writes generally will not invalidate the iterator unless the actual node is removed, however it does feature a node-corrections algorithm where it will attempt to recover if at all possible.
+
+<aside class='notice'>
+Although the iterator can iterate through a thread-safe data structure, it should NOT be used concurrently itself. Two threads manipulating the iterator can and will invoke undefined behavior.
+</aside>
+
+`iterator_t` is more useful in the cases where you have multiple concurrent readers iterating over the data structure at once, and fewer writers, although the `iterator_t` may be used in any cases. The data structures which implement the iterator will generally create their own specific helper macros.
+
+Not all callbacks need to be implemented by the underlying data structure. If they are not, they automatically return a failing value (false or NULL).
+
+##Linked List
+
+>Create a list
+
+~~~c
+list_t *list = list_create();
+~~~
+
+>Create a concurrent, logged, sorted list
+
+~~~c
+list_conf_t conf =
+{
+    .logger = logger,
+    .flags = LIST_CONCURRENT,
+    .callbacks =
+    {
+        .comparator = my_comparator,
+        .destructor = my_destructor
+    }
 };
 
-for (int i = 0; i < 3; i++) {
-    char *str;
-    ITERATOR_FOR_EACH(str, it)
-        puts(str);
-}
+list_t *list = list_create_conf(&conf);
+~~~
 
-```
+>Add an element to the list
 
-A general-use and generic iterator which allows for concurrent and modification safe iteration. Each data structure will implement their own callbacks for this iterator to invoke, in a way to be more efficient. All iterators (to date) have a node correction algorithm, where if the current node has been removed, it will attempt to use the previously capture next node. 
+~~~c
+void *item;
+list_add(list, item);
+~~~
 
-The iterator will also maintain a reference (note: add to the reference count) to the underlying data structure to ensure that it will not be freed and invoke undefined behavior. As well, the iterator keeps track of each node (reference) so as to not invoke undefined behavior and avoid any ABA problems that can arise from node corrections. Finally, the iterator can optionally keep reference to the items themselves to allow the user to safely use them, even if they are being concurrently "deleted".
+>Obtain an element in the list
 
-The iterator is generic enough so that you can mix-and-match between different types, such as list, map, and in the future, vector. This allows for effortless API calls without having to worry about what data structure was used to create it.
+~~~c
+int index = 4;
+list_get(list, index);
+~~~
 
-##Linked List [<b>Stable</b>] Version: 1.2
+>Remove or Delete an element
 
-```c
+~~~c
+// Remove will just remove from the list, transfering ownsership to caller
+list_remove(list, item);
+list_remove_at(list, index);
+list_remove_all(list);
 
-int comparator(void *item_one, void *item_two);
+// Delete will either call destructor or decrement count over item.
+list_delete(list, item);
+list_delete_at(list, index);
+list_delete_all(list);
+~~~
 
-const bool synchronized = true;
-void *item, *item_two;
+>For-Each macro & function
 
-list_t *list = list_create(synchronized);
-// Assume item was already allocated and points to a valid piece of memory.
-list_add(list, item, NULL);
-// We added the item to the list, unsorted. The third argument is a callback to add in sorted order.
-list_add(list, item_two, comparator);
+~~~c
+LIST_FOR_EACH(item, list)
+    do_something_with(item);
 
-void *tmp;
-// Loop for_each
-LIST_FOR_EACH(tmp, list)
-    do_something_with(tmp);
+list_for_each(list, do_something_with);
+~~~
 
-// The list is "Smart" enough to keep track of if an unsorted item was added, and will sort the list for you.
-list_get(list, 0);
+A highly-concurrent, configurable, doubly linked list implementation. Concurrency is optional, however when enabled, all calls will be done through reader-writer lock, allowing for parallelized access so long as they do not mutate the map. This is ideal for `iterator_t` objects, as it allows multiple readers. 
 
-list_remove(list, 1);
+If a comparator is specified, it will act as an ordered linked list, however this feature cannot be changed after creation. The list can be reference counted if specified, and also allow the items themselves to be as well.
 
-list_destroy(list, free);
+<aside class='warning'>
+The items MUST have been created with ref_count_create call. If they have not, this may invoke undefined behavior.
+</aside>
 
-```
+<aside class='success'>
+If used correctly, reference counting can make managing the list and accesses between threads easy. You could have multiple threads remove items from the list, add more, iterate, etc., and the items themselves will remain valid for as long as the iterator maintains a reference to it.
+</aside>
 
-A simple, yet robust double linked list implementation. It is thread-safe, and with the use of read-write locks, allows for very efficient read-often-write-rarely uses, but it's also good for general usage as well. 
+The list, by default, is a normal non-synchronized, non-reference counted linked list, and is suitable for use in all applications.
 
-It features a way to sort the list through the use of comparators, a for-each callback and macro that can be called on all items in the list, a print-all function to print everything in a neat, formatted way, and an implementation for iterator_t.
-
-##Priority Blocking Queue [<b>Stable</b>] Version: 1.3
+##Blocking Queue [<b>Stable</b>] Version: 1.3
 
 ```c
 
