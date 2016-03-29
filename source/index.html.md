@@ -1198,118 +1198,315 @@ If used correctly, reference counting can make managing the list and accesses be
 
 The list, by default, is a normal non-synchronized, non-reference counted linked list, and is suitable for use in all applications.
 
-##Blocking Queue [<b>Stable</b>] Version: 1.3
+##Blocking Queue
 
-```c
+>Create a default blocking queue
 
-/// The comparator. Simple, as it just compares two integers.
-int compare_vals(void *arg_one, void *arg_two) {
-    return *(int *)arg_one - *(int *)arg_two;
-}
+~~~c
+blocking_queue_t *bq = blocking_queue_create();
+~~~
 
-/// Create the queue. If the max size is 0, it is unbounded.
-priority_queue_t *queue = priority_queue_create(0, compare_vals);
+>Create a reference counted, prioritized, logging, bounded blocking queue
 
-int num = 1;
-/// Enqueue's timeout does nothing if it is unbounded as it will never block.
-priority_queue_enqueue(queue, &num, -1);
+~~~c
+blocking_queue_conf_t conf =
+{
+  .logger = logger,
+  .flags = BLOCKING_QUEUE_RC_INSTANCE,
+  .callbacks.comparator = my_comparator
+};
 
-/// Dequeue on the other handle will block if it is empty.
-priority_queue_dequeue(queue, -1);
-/// Now forcefully dequeue until timeout of 5 seconds, as it is now empty.
-priority_queue_dequeue(queue, 5);
-/// Now, purposefully wait undefinitely, normally this will cause a deadlock if no other thread enqueues, but observe.
-priority_queue_dequeue(queue, -1);
+blocking_queue_t *bq = blocking_queue_create_conf(&conf);
+~~~
 
-/// Now imagine this is called in another thread...
-priority_queue_destroy(queue, free);
-/*
-    priority_queue_destroy takes a callback which fits free perfectly, but any 
-    other function can be used. If the queue has threads waiting on it, like 
-    MU_Events, it will wake up all threads and wait for it to exit 
-    appropriately before destruction.
-*/
-```
+>Enqueue (Producer)
 
-The priority_queue, is a simple, synchronized queue that sorts elements based on the comparator passed, if there is one. If there isn't one, then it acts a normal queue, making it flexible. 
+~~~c
+// Only blocks if bounded
+long timeout = -1;
+void *item;
+blocking_queue_enqueue(bq, item, timeout);
+~~~
 
-It's enqueue and dequeue allows the use of a timeout, which a timeout of 0 allows you to poll, acting as a normal non-blocking queue as need be. It's synchronized nature allows it to sorted and cleared without the limits of a lockless queue, but lacks the performance of one, but overall it is moderately light weight and very intuitive and easy to use.
+>Dequeue (Consumer)
 
-If the priority_queue is destroyed, the waiting threads will wake up and exit.
+~~~c
+// Blocks if empty, in milliseconds
+long timeout = 5000;
+void *item = blocking_queue_dequeue(bq, timeout);
+~~~
+
+>Shutdown - Wakes up any blocked threads.
+
+~~~c
+blocking_queue_shutdown(bq);
+~~~
+
+`blocking_queue_t` is an ideal producer-consumer queue, which can optionally be bounded, and even turn into a priority blocking queue if a comparator is passed. It can be reference counted, and supplies a method to wake up all blocked threads.
+
+<aside class='notice'>
+Destroying the queue intrinsically calls blocking_queue_shutdown, so any blocked threads will wake up and exit the queue.
+</aside>
 
 ##Vector [<b>Unimplemented</b>]
 
-###Planned
+>Create a default vector
 
-* Simple vector implementation using arrays.
-    - Synchronized with spinlock.
+~~~c
+vector_t *vec = vector_create();
+~~~
 
-##Lock-Free Stack [<b>Unstable</b>]
+>Create a custom vector
 
-```c
+~~~c
+vector_conf_t conf =
+{
+  .logger = logger,
+  .flags = VECTOR_RC_INSTANCE,
+  .callbacks =
+  {
+    .comparator = my_comparator,
+    .destructor = my_destructor
+  }
+};
 
-stack_t *stack = stack_create();
-stack_push(stack, "Hello World");
-stack_pop(stack);
-stack_destroy(stack, free);
+vector_t *vec = vector_create_conf(&conf);
+~~~
 
-```
+>Add an element to the vector
 
-The lockless stack utilizes MU_Hazard_Pointers to avoid the ABA problem and allow safe deallocation of nodes after they are popped off the stack. The stack is guaranteed not to lock, hence all threads are constantly making progres, and will yield if they fail on atomic compare and swaps to lower contention. 
+~~~c
+void *item;
+vector_add(vec, item);
+~~~
 
-##Lock-Free Queue [<b>Unstable</b>]
+>Get an element from vector
 
-```c
+~~~c
+int index = 4;
+void *item = vector_get_at(vec, index);
+~~~
 
+>Remove or Delete elements from the vector
+
+~~~c
+// Remove will transfer ownership to caller, removing from vector.
+int index = 4;
+void *item = vector_remove_at(vec, index);
+vector_remove(vec, item);
+vector_remove_all(vec);
+
+// Delete will invoke destructor or decrement count
+vector_delete_at(index);
+vector_delete(vec, item);
+vector_delete_all(vec);
+~~~
+
+`vector_t`, unlike `list_t`, is backed by a dynamically allocated array. This means that it is specialized for random access, however insertions and deletions should be done more sparingly. Also, unlike `list_t` or `map_t`, it isn't really built for concurrent access, so it is synchronized with a `pthread_mutex_t` when concurrent access is flagged. Even so, the iterator is still available for iteration, although it should be noted, it is not parallel like `list_t`, hence this should be used for more random-access oriented data.
+
+Like `list_t` it can become a sorted vector if a comparator is passed on creation, but this cannot be changed at runtime.
+
+##Stack
+
+>Create a simple stack - NOTE: stack_t is reserved by POSIX and so not typedef'd
+
+~~~c
+struct c_utils_stack *stack = stack_create();
+~~~
+
+>Create a lock-free stack
+
+~~~c
+struct c_utils_stack_conf_t conf =
+{
+  .flags = STACK_CONCURRENT,
+  .logger = logger
+};
+
+struct c_utils_stack *stack = stack_create_conf(&conf);
+~~~
+
+>Push
+
+~~~c
+void *item;
+stack_push(stack, item);
+~~~
+
+>Pop
+
+~~~c
+void *item = stack_pop(stack);
+~~~
+
+A simple, yet thread-safe stack implementation. When flagged to be concurrent, all operations use atomics (compare-and-swap) and hazard pointers to ensure optimal thread safety. Overall it is relatively simple.
+
+##Queue
+>Create a simple queue
+
+~~~c
 queue_t *queue = queue_create();
-queue_enqueue(queue, "Hello World");
-queue_dequeue(queue);
-queue_destroy(queue, free);
+~~~
 
-```
+>Create a lock-free queue
 
-The lockless queue utilitizes hazard pointers to solve the ABA problem, is fast and minimal, and guaranteed to never block or deadlock. Like the stack, it will yield if it fails on a compare and swap to lower overall contention
+~~~c
+queue_conf_t conf =
+{
+  .flags = QUEUE_CONCURRENT,
+  .logger = logger
+};
 
-##Ring Buffer [<b>Unimplemented</b>]
+queue_t *queue = queue_create_conf(&conf);
+~~~
 
-###Planned
+>Enqueue
 
-* Lock-Free Ring Buffer implementation
-* Allows writing and read
-    - Writing rings around, overwriting once full
+~~~c
+void *item;
+queue_enqueue(queue, item);
+~~~
 
-##Hash Map [<b>Stable</b>] Version: 1.0
+>Dequeue
 
-```c
+~~~c
+void *item = queue_dequeue(queue);
+~~~
 
-const int init_bucket_size = 31;
-const bool synchronized = true;
+A simple, yet thread-safe queue implementation. When flagged to be concurrent, all operations use atomics (compare-and-swap) and hazard pointers to ensure optimal thread safety. Overall it is relatively simple.
 
-// Assume it just returns the string directly.
-char *to_string(void *data);
+##Ring Buffer
 
-map_t *map = map_create(init_bucket_size, synchronized);
+>Create a Ring Buffer
 
-map_add("Hello World", "How are you");
-printf("%s", map_get("Hello World"));
+~~~c
+buffer_t *buf = buffer_create();
+~~~
 
-size_t key_val_size;
-char **key_val_pairs = map_key_value_to_string(
-    map, "(", ",", ")",&key_val_size, to_string
-);
+>Create a more specific ring buffer
 
-```
+~~~c
+buffer_conf_t conf = 
+{
+  .logger = logger,
+  .flags = BUFFER_CONCURRENT,
+  .callbacks =
+  {
+    .allocator = my_alloc,
+    .destructor = my_free
+  },
+  .initial_size = 1024 * 1024
+};
 
-A basic, synchronized hash map implementation. It's thread-safe, but not lockless, yet it fulfills it's purpose. It takes string keys, but it's value can be anything.
+buffer_t *buf = buffer_create_conf(&conf);
+~~~
 
-##Deque [<b>Unimplemented</b>]
+>Write
 
-###Planned
+~~~c
+char *buf;
+buffer_write(buf);
+~~~
 
-* Double-edged Queue
-    - Pop and Dequeue
-    - Push and Enqueue
-* Spinlock for synchronization
+>Read
+
+~~~c
+// How much is read returned in len.
+size_t len = BUFFER_READ_ALL;
+char *data = buffer_read(buf, &len);
+
+char tmp_buf[BUFSIZ];
+size_t read = buffer_read_into(buf, tmp_buf, BUFSIZ);
+~~~
+
+`buffer_t` is a basic ring buffer implementation allowing to overwrite older portions with newer data.
+
+##Hash Map
+
+>Create a hash map for normal `char *`, `void *` pairs
+
+~~~c
+map_t *map = map_create();
+~~~
+
+>Create a reference counted hash map for `void *`, `void *` pairs
+
+~~~c
+map_conf_t conf = 
+{
+  .logger = logger,
+  .flags = MAP_RC_INSTANCE | MAP_RC_KEY | MAP_RC_VALUE | MAP_CONCURRENT,
+  .key_len = sizeof(struct my_obj),
+}
+~~~
+
+>Add a new key-value pair
+
+~~~c
+char *key = "Hello";
+char *value = "World";
+
+map_add(map, key, value);
+~~~
+
+>Get a key-value pair
+
+~~~c
+char *key = "Hello";
+char *value = map_get(map, key);
+~~~
+
+>Remove or Delete a key-value pair
+
+~~~c
+char *key = "Hello";
+char *value = map_remove(map, key);
+
+map_delete(map, key);
+~~~
+
+>Set value to a key (if it exists)
+
+~~~c
+char *key = "Hello";
+char *value = "Good Bye"
+map_set(map, key, value);
+~~~
+
+>Iterate over a map
+
+~~~c
+char *key, *value;
+MAP_FOR_EACH_KEY(key, map)
+  do_something_with(key);
+
+MAP_FOR_EACH_VALUE(value, map)
+  do_something_with(value);
+
+MAP_FOR_EACH_PAIR(key, value, map)
+  do_something_with_pair(key, value);
+~~~
+
+A highly concurrent and configurable hash map implementation. The hash map allows and is optimized for concurrent readers through it's reader-writer lock, and hence is ideal for the `iterator_t` instances. 
+
+Like `list_t`, the `iterator_t` will keep a reference count to the underlying data structure if it has been configured, and the key-value pairs can be reference counted as well.
+
+<aside class='warning'>
+The reference counted data MUST have been created with ref_count_create or else you invoke undefined behavior!
+</aside>
+
+`map_t` by default is set up to allow `char *` string keys with any type of value, however if the `key_len` is specified, it's default hash can be used, meaning the user doesn't need to implement their own. Doing so will allow any type of data to be used as the hash, as it will just hash each byte up to the passed `key_len`.
+
+<aside class='warning'>
+If key_len or hash_function is not specified, it will invoke strlen on it, as it will treat it like a cstring. Hence it is CRUCIAL that if you use the default map, you are using a string (or at least have a 0 byte set within the struct).
+</aside>
+
+`map_t` can also have it's growth rate and trigger configured, as well as enable shrinking once it approaches the configured trigger by the configured rate. Defaults are general enough, but if specific features are needed, they can be done so through `map_conf_t` object.
+
+`iterator_t` instances returned from `map_iterator` will be iterating over a copy of the data at the given time it's first used after it is reset. Hence, it will keep a reference to each key-value pair as well, so it is urged that you do not leak this, as you risk leaking your data as well as the data structure as well, which means the other data it holds too.
+
+It should further be noted that due to this, while a iterator is in use, the data at the time it began MUST be valid if it is not being reference counted. If you do not like this arrangement, `map_for_each` can handle non-reference counted data easily as it is done under one pass of the reader-lock.
+
 
 #Misc.
 
