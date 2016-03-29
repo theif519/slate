@@ -1510,108 +1510,102 @@ It should further be noted that due to this, while a iterator is in use, the dat
 
 #Misc.
 
-##Timer [<b>Unstable</b>] Version: 1.0
-
-A basic timer utility, allowing you to start and stop a timer and get a string representation of the total time.
+Miscallaneous utilities which help abstract and manage tedious operations.
 
 ##Flags [<b>Stable</b>] Version: 1.0
 
-```c
+>Check if a bit-flag is set in mask
 
-/// Sample flag, the easiest way to bitwise flags without doing the math yourself
-#define SIMPLE_FLAG 1 << 0
-/// You can also use a constant expression.
-static const unsigned int scope_respecting_flag = 1 << 1;
-/// Or use an enumeration
-typedef enum {
-    flag_one = 1 << 2,
-    flag_two = 1 << 3,
-    flag_three = 1 << 4
-} flags;
+~~~c
+if(FLAG_GET(mask, flag))
+~~~
 
-/// Now to show how to use the given MU_Flag macros.
+>Set a bit-flag in mask
 
-/// Initialize a mask of flags.
-unsigned int mask = SIMPLE_FLAG | scope_respecting_flag | flag_one;
-/// Can determine if a flag has been passed in the mask above. Will be true.
-bool has_simple_flag = MU_FLAG_GET(mask, scope_respecting_flag);
-/// Sets the flag_two flag in the mask
-FLAG_SET(mask, flag_two);
-/// Removes the SIMPLE_FLAG mask from the mask
-FLAG_CLEAR(mask, SIMPLE_FLAG);
-/// Toggles flag_three on.
-FLAG_TOGGLE(mask, flag_three);
+~~~c
+FLAG_SET(mask, flag);
+~~~
 
-```
+>Clear flag from mask
 
-Provides extremely simple yet extremely useful flags for bitmasking. In fact, it is so simple, you actually do not even need to know how bitwise operations even work. They provide macros that allow you to determine if a flag is set in a mask, to set a flag, clear a flag or even toggle a flag. They are extremely simple, once again.
+~~~c
+FLAG_CLEAR(mask, flag);
+~~~
 
-##Argument Checking [<b>Stable</b>] Version: 1.1
+>Toggle bit-flag in mask
 
-```c
+~~~c
+FLAG_TOGGLE(mask, flag);
+~~~
 
-// Assume this is initialized sometime before test_func is called.
-logger_t *logger;
+Convenience macros for bitwise operations for when you do not want to bother remembering all of them.
 
-typedef struct {
+Macro | Operation
+:---- | --------:
+`FLAG_GET` | `mask & flag`
+`FLAG_SET` | `mask |= flag`
+`FLAG_CLEAR` | `mask &= ~(flag)`
+`FLAG_TOGGLE` | `mask ^= flag`
+
+##Argument Checking
+
+>Example of checking argument of a function's parameters
+
+~~~c
+struct {
     bool is_valid;
-} test_struct;
+} A;
 
-bool test_func(char *msg, int val, test_struct *test) {
-    ARG_CHECK(logger, false, msg, val > 0 && val < 100, test, test && test->is_valid);
-    /*
-        ARG_CHECK takes a logger to log to, the return value, and then up to 8 arguments. Once again note that you must short-circuit test to get it's is_valid member safely as this is a limitation of macros.
-    */
+bool test_func(char *msg, int val, struct A *a) {
+    ARG_CHECK(logger, false, msg, val > 0 && val < 100, a, a && a->is_valid);
 }
-
-```
+~~~
 
 Features a very simple and easy to use macro that can check up to 8 arguments, logging the conditionals as strings and whether or not they are true or false. It should be noted that due to the limitations of macros, it does not feature short-circuit evaluations, hence if you are going to be checking struct members for validity you must check each time to see if the struct exists.
 
 If any of the conditions fail, it will output the following. For this example, assume test's is_valid member is false.
 
-Invalid Arguments=> { msg: TRUE; val > 0 && val < 100: TRUE; test: TRUE; test && test->is_valid: FALSE }
+`Invalid Arguments=> { msg: TRUE; val > 0 && val < 100: TRUE; test: TRUE; test && test->is_valid: FALSE }`
 
 ##Allocation Checker
 
+>Malloc and Check
+
 ~~~c
-
-static logger_t *logger;
-
 char *str;
 ON_BAD_MALLOC(str, logger, 6)
     goto err;
+~~~
 
+>Calloc and Check
+
+~~~c
 pthread_mutex_t *lock;
 ON_BAD_CALLOC(lock, logger, sizeof(*lock))
     goto err_lock;
+~~~
 
+>Realloc and Check
+
+~~~c
 int *arr;
 ON_BAD_REALLOC(&arr, logger, sizeof(*arr) * 5)
     goto err_arr;
-
-err_arr:
-    free(lock);
-err_lock:
-    free(str);
-err:
-    return NULL;
-
 ~~~
 
 Simple macros which check for a bad allocation, and if so will execute the block of code after it, using the macro for loop trick. So, if you wanted to use malloc, but return NULL or free up other resources on error, you would define the on-error block which will ONLY be called if things go wrong.
 
-##Portable TEMP_FAILURE_RETRY [<b>Stable</b>] Version: 1.0
+##Portable TEMP_FAILURE_RETRY
 
-```c
+>Restart fread on signal interrupt Example
 
+~~~c
 FILE *file = fopen(...);
 /// Assume this contains a valid file.
 char buf[BUFSIZ];
 size_t bytes_read;
 C_UTILS_TEMP_FAILURE_RETRY(bytes_read, fread(buf, 1, BUFSIZ, file));
 /// Etc.
+~~~
 
-```
-
-As GCC's TEMP_FAILURE_RETRY macro allows you to restart functions which return -1 and set errno to EINTR, which allow for consistent programming regardless of signals. The macro I implement is merely, an abuse of the comma operator to loop until EINTR is no longer set.
+As GCC's TEMP_FAILURE_RETRY macro allows you to restart functions which return -1 and set errno to EINTR, which allow for consistent programming regardless of signals. GCC's implementation uses statement expressions, which unfortunately Clang does not support, hence it has been ported into the utilities package.
