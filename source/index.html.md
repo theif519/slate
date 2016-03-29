@@ -1,19 +1,17 @@
-# Introduction
+#<center>Utilities Package <br>for the <br>C Programming Language</center>
 
-Welcome to C_Utils, the Utilities Package for the C Programming Language. Below you will find what the package has to offer, and see just how configurable and versatile it really is.
-
-##Development Stages
+##<center>Development Stages</center>
 
 Stage | Description
 :---- | ----------:
 Unimplemented | Development has not yet begun, however it will in the future.
-DEPRECATED | The library is to be removed at a later date and should not be used.
-In Development | The library is currently in development and not ready for public use.
+Deprecated | The library is to be removed at a later date and should not be used.
+Development | The library is currently in development and not ready for public use.
 Unstable | The library is in it's late development stages, however is not production-ready; further testing needed.
 Stable | The library is mostly finished development and has been tested; further testing needed before production-ready
 Finished | The library is finished development and has been extensively tested; it is production ready.
 
-##Artificial Namespace patterns
+##<center>Artificial Namespace</center>
 
 >With the namespace prefix...
 
@@ -51,7 +49,7 @@ Now it is a LOT less long-winded, and much more elegant looking. This trade off 
 You MUST place it before the inclusion of the package
 </aside>
 
-##Configurations
+##<center>Configurations</center>
 
 >Creating a map with defaults
 
@@ -113,7 +111,7 @@ The way the library conquers this is by allowing each object to be created with 
 Some defaults are not optimal with all configurations. Sometimes if you specify one configuration, you should also specify another as well to get the behavior you want.
 </aside>
 
-##Lifetime Management
+##<center>Lifetime Management</center>
 
 >Create reference counted priority queue for producer-consumer relationship.
 
@@ -149,7 +147,7 @@ The data passed to REF_DEC and REF_INC MUST have been created with the ref_creat
 If done correctly, it can become a very useful utility for managing shared data between different threads or even different objects in general.
 </aside>
 
-#Threading
+#<center>Threading</center>
 
 Library | Version | Status
 :------- | :-------: | ------:
@@ -158,7 +156,7 @@ Scoped Lock | 0.75 | Unstable
 Conditional Locks | 1.0 | Stable
 Events | 1.2 | Stable
 
-## Thread Pool
+##<center>Thread Pool</center>
 >Thread pool task
 
 ~~~c
@@ -222,11 +220,11 @@ thread_pool_wait(tp, timeout);
 thread_pool_destroy(tp);
 ~~~
 
-thread_pool_t is a thread pool with it's own priority queue for tasks. As implied by the use of a priority queue, tasks may be submitted via 6 different priorities, Lowest, Low, Medium, High and Highest. High Priority tasks would jump ahead of tasks of Low priority, intuitively. 
+`thread_pool_t` is a thread pool which makes use of a prioritized `blocking_queue_t` for tasks. As implied by the use of a priority queue, tasks may be submitted via 6 different priorities, Lowest, Low, Medium, High and Highest. High Priority tasks would jump ahead of tasks of Low priority, intuitively. 
 
 The static thread pool maintains a steady amount of threads, never growing or shrinking in size, however unused threads will block, hence it will not waste resources waiting for a new task to be submitted. 
 
-Each task can return an asynchronous result, which, based on my implementation of events, you may wait (or poll) for when the task finishes. So, to reiterate, a task, by default, returns a result which can be waited on.
+Each task can return an asynchronous result, `result_t`, which, using `event_t`, you may wait (or poll) for when the task finishes. So, to reiterate, a task, by default, returns a result which can be waited on.
 
 When submitting tasks, it comes with it's own default priority and will return a result_t result to wait on, but by passing certain flags, like `HIGH_PRIORITY | NO_RESULT` you may flag tasks specifically.
 
@@ -234,7 +232,7 @@ Finally you can pause the thread pool, meaning, that currently running tasks fin
 
 Another note to mention is that the thread pool showcases the use of `event_t`, as waiting on a result is an event, so is to pause and resume.
 
-##Scoped Locks
+##<center>Scoped Locks</center>
 
 >Scoped Spinlock
 
@@ -322,7 +320,7 @@ Since it is possible to always return inside of a for loop, and the for loop wil
 If used correctly, it can be an invaluable tool for writing newer multi-threaded code. The type agnosticism easily allows you to switch out locks even at runtime with no effort, or even disable locks altogether.
 </aside>
 
-##Conditional Locks
+##<center>Conditional Locks</center>
 
 >Supports Mutexes
 
@@ -353,7 +351,7 @@ To give an example of it's usefulness, you have to imagine a scenario where you 
 
 It also extremely useful for debugging `EDEADLK` and where they occur.
 
-##Events
+##<center>Events</center>
 
 >Creation with configuration object (optional)
 
@@ -404,7 +402,7 @@ event_destroy(event, max_timeout);
 Extra special care must be taken if reference counting is not being used. Although the event will not be destroyed until ALL threads inside of the event exit, any threads attempting to access it afterwards will invoke undefined behavior. Hence, you need some external way to notify threads that the event is dead.
 </aside>
 
-#Memory Management
+#<center>Memory Management</center>
 
 This library features useful tools and abstractions which will not only help with memory management, but also improve overall efficiency.
 
@@ -414,7 +412,7 @@ Hazard Pointers | .5 | Unstable
 Reference Counting | 0.75 | Unstable
 Object Pool | N/A | Unimplemented
 
-##Hazard Pointers
+##<center>Hazard Pointers</center>
 
 >Creating the hazard pointer
 
@@ -486,7 +484,7 @@ The configured maximum number of threads using the data structure MUST be accura
 
 When data is finished with, it will be destroyed via it's destructor, which cannot be changed after initial configuration.
 
-##Lock-Free Reference Counting
+##<center>Reference Counting</center>
 
 >Allocating reference counted data
 
@@ -537,7 +535,7 @@ On a side note, there are some checks in place to help ensure the appropriate us
 Almost every library in this package support reference counting in some way, and make it easier to manage them. If they support reference counting, they can optionally be destroyed by calling REF_DEC instead of their custom destructors.
 </aside>
 
-##Object Pool
+##<center>Object Pool</center>
 
 >Create Object pool.
 
@@ -587,7 +585,7 @@ object_pool_destroy(pool);
 The object_pool can be managed asynchronously if the appropriate flags are used. The asynchronousity is used by a global event_loop_t instance. Hence, if you want the pool to shrink after a certain time has passed since the object has last been used, it will do so.
 </aside>
 
-#String
+#<center>String</center>
 
 Useful abstractions for C-Strings.
 
@@ -597,7 +595,7 @@ String Manipulations | 1.3 | Stable
 String Buffer | 0.75 | Unstable
 Regular Expressions | N/A | Unimplemented
 
-##String Manipulations
+##<center>String Manipulations</center>
 
 >Typedef abstraction for cstrings
 
@@ -641,7 +639,7 @@ The `TEMP` macro-keyword, allows you to easily manage the lifetime of temporary 
 Note that the variable must point to the string itself. Also note that this should NOT be used with string literals, as this will result in a segmentation fault/undefined behavior.
 </aside>
 
-##String Buffer
+##<center>String Buffer</center>
 
 >Creating a string buffer
 
@@ -713,16 +711,16 @@ puts(str);
 
 `string_buffer_t` supports an option to enable synchronizaiton, which is done through a spinlock. Majority of cases do not require synchronization, however if ever you have a case where you require one, for say a producer-consumer relationship, it can be enabled easily.
 
-##Regular Expressions [<b>Unimplemented</b>]
+##<center>Regular Expressions</center>
 
-###Planned
+###<center>#Planned</center>
 
 * Easy abstracions for regular expressions
     - No need for cleaning up anything
 * Special regex printf function
     - Use printf with regex to determine what to select from a passed string
 
-#I/O
+#<center>I/O</center>
 
 Library | Version | Status
 :------- | :-------: | ------:
@@ -733,7 +731,7 @@ Streams | N/A | Unimplemented
 
 Brings useful abstractions when dealing with streams through file descriptors. Buffering (I.E line-by-line), to asynchronous reading/writing without needing to worry if it is a FILE or socket file descriptor. Also features a configurable logging utility.
 
-##Logger
+##<center>Logger</center>
 
 >Create a logger
 
@@ -783,7 +781,7 @@ Tokens | Format
 %msg | Message
 %cond | Condition (Used for assertions)
 
-##Event Loop
+##<center>Event Loop</center>
 
 >Below is a rather extensive example of how a dispatch for the event loop would look for a server that reads data from a client, formulates it into an HTTP request, and formulates their own HTTP response. Quite a few things are left out, but it should get the point across.
 
@@ -882,17 +880,17 @@ The `event_source_t` objects, when reference counted, are extremely useful, as t
 
 The main benefit of using an `event_loop_t` over a thread pool is that, one, it uses less resources and is more efficient when you need to involve multiple threads, and as well there is no need to worry about synchornization as things occur sequentially  if everything is handled by the `event_loop_t`. 
 
-##File Buffering [<b>Unimplemented</b>]
+##<center>File Buffering</center>
 
-###Planned
+###<center>Planned</center>
 
 * Stream over a file by buffering a certain amount of it at a time
     - Will support buffering by line.
         + Effortless next_line and prev_line abstractions
 
-##Asyncronous Streams [<b>Unimplemented</b>]
+##<center>Asyncronous Streams</center>
 
-###Planned
+###<center>Planned</center>
 
 * Stream over an abitrary collection of items
     - strings 
@@ -903,7 +901,7 @@ The main benefit of using an `event_loop_t` over a thread pool is that, one, it 
 * Streams can be updated concurrently as they are being taken from
     - Easy Producer-Consumer
 
-#Networking
+#<center>Networking</center>
 
 Provides basic, but extremely powerful networking abstractions to help make using sockets less of a headache.
 
@@ -911,11 +909,11 @@ Library | Version | Status
 :------- | :-------: | ------:
 Socket Utilities | N/A | Unimplemented
 HTTP | 0.5 | Unstable
-Connections | 1.0 | DEPRECATED
-Server | 1.0 | DEPRECATED
-Client | 1.0 | DEPRECATED
+Connections | 1.0 | Deprecated
+Server | 1.0 | Deprecated
+Client | 1.0 | Deprecated
 
-##Socket Utilities
+##<center>Socket Utilities</center>
 
 >Connect to an endpoint... Synchronously
 
@@ -984,7 +982,7 @@ You MUST NOT block inside of the asynchronous handlers, as they WILL stall the e
 When asynchronocity is used correctly, one can abstract the need to use event_loop_t directly yourself.
 </aside>
 
-##HTTP
+##<center>HTTP</center>
 
 >Create an HTTP generic header
 
@@ -1057,11 +1055,11 @@ char *res = header_generate(header, &len);
 To generate a header from a string, keep in mind that the pointer to the length must maintain the size, and it will return the offset after the header (I.E, where the message body begins).
 </aside>
 
-#Data Structures
+#<center>Data Structures</center>
 
 An assortment of data structures, all of which are highly configurable, thread-safe, and support reference counting. Some provide iterator implementations that are thread-safe and highly concurrent when used right.
 
-##Iterator [<b>In Development</b>] Version: 0.5
+##<center>Iterator</center>
 
 >Create an iterator from a list
 
@@ -1122,7 +1120,7 @@ Although the iterator can iterate through a thread-safe data structure, it shoul
 
 Not all callbacks need to be implemented by the underlying data structure. If they are not, they automatically return a failing value (false or NULL).
 
-##Linked List
+##<center>Linked List</center>
 
 >Create a list
 
@@ -1198,7 +1196,7 @@ If used correctly, reference counting can make managing the list and accesses be
 
 The list, by default, is a normal non-synchronized, non-reference counted linked list, and is suitable for use in all applications.
 
-##Blocking Queue
+##<center>Blocking Queue</center>
 
 >Create a default blocking queue
 
@@ -1248,7 +1246,7 @@ blocking_queue_shutdown(bq);
 Destroying the queue intrinsically calls blocking_queue_shutdown, so any blocked threads will wake up and exit the queue.
 </aside>
 
-##Vector [<b>Unimplemented</b>]
+##<center>Vector</center>
 
 >Create a default vector
 
@@ -1306,7 +1304,7 @@ vector_delete_all(vec);
 
 Like `list_t` it can become a sorted vector if a comparator is passed on creation, but this cannot be changed at runtime.
 
-##Stack
+##<center>Stack</center>
 
 >Create a simple stack - NOTE: stack_t is reserved by POSIX and so not typedef'd
 
@@ -1341,7 +1339,7 @@ void *item = stack_pop(stack);
 
 A simple, yet thread-safe stack implementation. When flagged to be concurrent, all operations use atomics (compare-and-swap) and hazard pointers to ensure optimal thread safety. Overall it is relatively simple.
 
-##Queue
+##<center>Queue</center>
 >Create a simple queue
 
 ~~~c
@@ -1375,7 +1373,7 @@ void *item = queue_dequeue(queue);
 
 A simple, yet thread-safe queue implementation. When flagged to be concurrent, all operations use atomics (compare-and-swap) and hazard pointers to ensure optimal thread safety. Overall it is relatively simple.
 
-##Ring Buffer
+##<center>Ring Buffer</center>
 
 >Create a Ring Buffer
 
@@ -1421,7 +1419,7 @@ size_t read = buffer_read_into(buf, tmp_buf, BUFSIZ);
 
 `buffer_t` is a basic ring buffer implementation allowing to overwrite older portions with newer data.
 
-##Hash Map
+##<center>Hash Map</center>
 
 >Create a hash map for normal `char *`, `void *` pairs
 
@@ -1508,11 +1506,11 @@ If key_len or hash_function is not specified, it will invoke strlen on it, as it
 It should further be noted that due to this, while a iterator is in use, the data at the time it began MUST be valid if it is not being reference counted. If you do not like this arrangement, `map_for_each` can handle non-reference counted data easily as it is done under one pass of the reader-lock.
 
 
-#Misc.
+#<center>Misc.</center>
 
 Miscallaneous utilities which help abstract and manage tedious operations.
 
-##Flags [<b>Stable</b>] Version: 1.0
+##<center>Flags [<b>Stable</b>] Version: 1.0</center>
 
 >Check if a bit-flag is set in mask
 
@@ -1547,7 +1545,7 @@ Macro | Operation
 `FLAG_CLEAR` | `mask &= ~(flag)`
 `FLAG_TOGGLE` | `mask ^= flag`
 
-##Argument Checking
+##<center>Argument Checking</center>
 
 >Example of checking argument of a function's parameters
 
@@ -1567,7 +1565,7 @@ If any of the conditions fail, it will output the following. For this example, a
 
 `Invalid Arguments=> { msg: TRUE; val > 0 && val < 100: TRUE; test: TRUE; test && test->is_valid: FALSE }`
 
-##Allocation Checker
+##<center>Allocation Checker</center>
 
 >Malloc and Check
 
@@ -1595,7 +1593,7 @@ ON_BAD_REALLOC(&arr, logger, sizeof(*arr) * 5)
 
 Simple macros which check for a bad allocation, and if so will execute the block of code after it, using the macro for loop trick. So, if you wanted to use malloc, but return NULL or free up other resources on error, you would define the on-error block which will ONLY be called if things go wrong.
 
-##Portable TEMP_FAILURE_RETRY
+##<center>Portable TEMP_FAILURE_RETRY</center>
 
 >Restart fread on signal interrupt Example
 
