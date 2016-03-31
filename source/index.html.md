@@ -155,6 +155,7 @@ Thread Pool | 1.3 | Stable
 Scoped Lock | 0.75 | Unstable
 Conditional Locks | 1.0 | Stable
 Events | 1.2 | Stable
+Asynchronous Results | N/A | Unimplemented
 
 ##<center>Thread Pool</center>
 >Thread pool task
@@ -384,6 +385,20 @@ while(!event_wait(event, timeout))
   poll_then_sleep();
 ~~~
 
+>Wait on multiple events
+
+~~~c
+int num_evts = 3;
+event_t *evts[];
+
+for(int i = 0; i < num_evts; i++)
+  evts[i] = event_create();
+
+int timeout = EVENT_NO_TIMEOUT;
+bool wait_all = false;
+int index = event_wait_all(evts, num_evts, wait_all, timeout);
+~~~
+
 >Destroy the event. If it is reference counted, this decrements the count instead. When it is being destroyed, it will wake up all threads waiting on the event.
 
 ~~~c
@@ -401,6 +416,38 @@ event_destroy(event, max_timeout);
 <aside class="warning">
 Extra special care must be taken if reference counting is not being used. Although the event will not be destroyed until ALL threads inside of the event exit, any threads attempting to access it afterwards will invoke undefined behavior. Hence, you need some external way to notify threads that the event is dead.
 </aside>
+
+Multiple `event_t` objects can also be waited on, and depending on if `wait_all` is specified determines if it returns early or not. This is an extremely useful and powerful tool, as it allows the user to wait on until all or at least one event is ready. `event_t`'s polling for events to be ready is done via file descriptors, and in fact can even be used over `event_loop_t`'s local `event_source_t` instances.
+
+##<center>Asynchronous Results</center>
+
+>Creating a future_t object.
+
+~~~c
+future_t *result = future_create();
+~~~
+
+>Obtaining a future_t object from a function
+
+~~~c
+future_t *some_async_func();
+~~~
+
+>Push result to future_t
+
+~~~c
+void *item;
+future_put(result, item);
+~~~
+
+>Pull result from future_t
+
+~~~c
+long timeout = FUTURE_NO_TIMEOUT;
+void *item = future_get(result, timeout);
+~~~
+
+`future_t` is a C-implementation of Java's Future, which allows the caller to wait on an asynchronous result, poll on it (with a 0 timeout), or even asynchronously wait on it.
 
 #<center>Memory Management</center>
 
@@ -713,7 +760,7 @@ puts(str);
 
 ##<center>Regular Expressions</center>
 
-###<center>#Planned</center>
+###<center>Planned</center>
 
 * Easy abstracions for regular expressions
     - No need for cleaning up anything
